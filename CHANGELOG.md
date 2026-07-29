@@ -30,6 +30,10 @@ and this project aims to follow [Semantic Versioning](https://semver.org/).
   POS-aware lookup saw only the unapproved sense they were meant to override.
 - `ste_apply_safe_fixes` returned a blanked `diff`; the diff is now returned
   and capped, and `original` (the caller's own input) is no longer echoed.
+- `ste_lookup_word` / `ste100 lookup` described only one sense of a multi-sense
+  headword, reporting `check` as plainly "approved" while the checker flagged
+  its unapproved verb sense. Payloads for such headwords now carry a `senses`
+  list; single-sense entries are unchanged.
 
 ### Changed
 

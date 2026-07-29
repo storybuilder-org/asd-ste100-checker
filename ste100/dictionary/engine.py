@@ -424,6 +424,21 @@ class DictionaryEngine:
             payload["examples_ste"] = []
             payload["examples_non_ste"] = []
             payload["notes"] = None
+        # A headword can carry one record per part of speech, and the fields
+        # above describe only one of them. Reporting "check: approved" while
+        # the checker flags the unapproved verb sense is worse than useless to
+        # a caller deciding whether a word is safe to write.
+        senses = self.lookup_records(word)
+        if len(senses) > 1:
+            payload["senses"] = [
+                {
+                    "part_of_speech": s.part_of_speech,
+                    "status": s.status.value,
+                    "approved_meaning": s.approved_meaning,
+                    "alternatives": list(s.alternatives),
+                }
+                for s in senses
+            ]
         return payload
 
     def is_approved(self, word: str, pos: str | None = None) -> bool:
