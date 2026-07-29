@@ -2,6 +2,8 @@
   "description": "Seed technical nouns (STE Rule 1.5 categories) omitted from the curated alpha dictionary. Unofficial — not affiliated with ASD.",
   "technical_nouns": [
     {"word": "valve", "category": "parts", "approved_meaning": "Technical noun: a valve component."},
+    {"word": "cover", "category": "parts", "approved_meaning": "Technical noun: a cover or protective panel."},
+    {"word": "power", "category": "systems", "approved_meaning": "Technical noun: electrical power."},
     {"word": "door", "category": "parts", "approved_meaning": "Technical noun: a door or access panel."},
     {"word": "cable", "category": "parts", "approved_meaning": "Technical noun: a cable."},
     {"word": "panel", "category": "parts", "approved_meaning": "Technical noun: a panel."},

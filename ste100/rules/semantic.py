@@ -462,12 +462,34 @@ def check_pos_mismatch(doc: Doc, context: AnalysisContext) -> list[Finding]:
             if observed is None:
                 continue
 
-            record = engine.lookup(token.text)
-            if record is None:
+            records = engine.lookup_records(token.text)
+            if not records:
                 # Try lemma for inflected forms already indexed via inflections.
-                record = engine.lookup(token.lemma_)
-            if record is None:
+                records = engine.lookup_records(token.lemma_)
+            if not records:
                 continue
+            # There is no clash if any recorded sense is approved for the part
+            # of speech actually used: "set" is approved as both noun and verb,
+            # and a POS-blind lookup keeps only whichever sense indexed last.
+            if any(
+                r.status is WordStatus.APPROVED
+                and _normalize_dict_pos(r.part_of_speech) == observed
+                for r in records
+            ):
+                continue
+            # Report against a sense that genuinely conflicts, not whichever
+            # one happened to be indexed last.
+            record = next(
+                (
+                    r
+                    for r in records
+                    if frozenset(
+                        {_normalize_dict_pos(r.part_of_speech), observed}
+                    )
+                    in _CONFLICT_PAIRS
+                ),
+                records[0],
+            )
             if record.status in _SKIP_STATUSES:
                 continue
             if record.status is not WordStatus.APPROVED:

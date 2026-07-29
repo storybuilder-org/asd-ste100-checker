@@ -4,6 +4,21 @@ from __future__ import annotations
 
 from spacy.tokens import Doc, Span, Token
 
+from ste100.dictionary.engine import dictionary_pos_candidates
+
+
+def token_pos_candidates(token: Token) -> tuple[str, ...]:
+    """Candidate dictionary parts of speech for a token, best match first.
+
+    spaCy routinely tags the head of an imperative step as a noun ("Commence
+    the test." -> NOUN), which is the sentence form STE procedures are written
+    in. When a token heads its sentence, allow the verb sense as well.
+    """
+    candidates = dictionary_pos_candidates(token.pos_)
+    if token.dep_ == "ROOT" and "verb" not in candidates:
+        return ("verb", *candidates)
+    return candidates
+
 
 def sentence_index(doc: Doc, sent: Span) -> int:
     """1-based sentence index of ``sent`` within ``doc``."""

@@ -9,15 +9,23 @@ from spacy.tokens import Doc
 from ste100.core.schema import Finding, Severity, Suggestion, WordStatus
 from ste100.dictionary.engine import is_non_vocabulary_token
 from ste100.rules.context import AnalysisContext
-from ste100.rules.spacy_util import sentence_index_for_token
+from ste100.rules.spacy_util import sentence_index_for_token, token_pos_candidates
 
 RULE_UNAPPROVED = "STE-VOCAB-UNAPPROVED"
 RULE_FORBIDDEN = "STE-VOCAB-FORBIDDEN"
 STE_RULE_REF = "Rule 1.1"
 
 
-def _suggestions_for(word: str, context: AnalysisContext) -> list[Suggestion]:
-    alts = context.dictionary.suggest_alternatives(word)
+def _suggestions_for(
+    word: str,
+    context: AnalysisContext,
+    record: object | None = None,
+) -> list[Suggestion]:
+    # When the sense used is known, its own alternatives are the only correct
+    # ones; suggest_alternatives() merges every part of speech for the form.
+    alts = list(getattr(record, "alternatives", None) or ())
+    if not alts:
+        alts = context.dictionary.suggest_alternatives(word)
     out: list[Suggestion] = []
     for i, alt in enumerate(alts):
         out.append(
@@ -46,7 +54,8 @@ def check_vocabulary(doc: Doc, context: AnalysisContext) -> list[Finding]:
 
         key = text.lower()
         preferred = context.dictionary.preferred_terms.get(key)
-        record = context.dictionary.lookup(text)
+        token_pos = token_pos_candidates(token)
+        record, form_known = context.dictionary.lookup_sense(text, token_pos)
 
         span_key = (token.idx, token.idx + len(token.text))
         if span_key in seen_spans:
@@ -82,6 +91,23 @@ def check_vocabulary(doc: Doc, context: AnalysisContext) -> list[Finding]:
                 )
             )
             continue
+
+        if record is None and form_known:
+            # The form is listed, but not for the part of speech used here.
+            # Two very different situations reach this point:
+            #
+            #  * Some sense of the word is approved — the dictionary is
+            #    extracted from the PDF and its POS coverage is incomplete
+            #    ("first" is recorded only as an adverb). Absence of the exact
+            #    sense is not evidence of disapproval, so stay silent.
+            #  * Every recorded sense is unapproved or forbidden — the word is
+            #    disapproved wherever the dictionary speaks about it, so report
+            #    it, using the recorded sense for alternatives.
+            if context.dictionary.has_approved_sense(text):
+                continue
+            record = context.dictionary.lookup(text)
+            if record is None:
+                continue
 
         if record is None:
             # Not in dictionary and not a glossary-approved technical term
@@ -128,7 +154,7 @@ def check_vocabulary(doc: Doc, context: AnalysisContext) -> list[Finding]:
                         "status": status.value,
                         "headword": record.word,
                     },
-                    suggestions=_suggestions_for(text, context),
+                    suggestions=_suggestions_for(text, context, record),
                 )
             )
         elif status in (
@@ -149,7 +175,7 @@ def check_vocabulary(doc: Doc, context: AnalysisContext) -> list[Finding]:
                         "status": status.value,
                         "headword": record.word,
                     },
-                    suggestions=_suggestions_for(text, context),
+                    suggestions=_suggestions_for(text, context, record),
                 )
             )
         elif status in (

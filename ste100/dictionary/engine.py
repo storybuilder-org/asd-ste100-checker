@@ -40,6 +40,39 @@ _UNAPPROVED_STATUSES = frozenset(
 # Tokens that are not STE vocabulary checks (labels, codes, noise).
 _NON_VOCAB_RE = re.compile(r"^[\W\d_]+$", re.UNICODE)
 
+# spaCy UPOS -> candidate dictionary ``part_of_speech`` values, best match
+# first. The STE dictionary keys entries by part of speech (189 headwords carry
+# more than one), so a lookup without a POS collapses distinct senses onto one
+# record. The mapping is one-to-many because the two tagsets do not align: the
+# dictionary records "first" only as an adverb though it is also used
+# attributively, and files determiners like "no" under adjective.
+_SPACY_POS_TO_DICT_POS: dict[str, tuple[str, ...]] = {
+    "NOUN": ("noun",),
+    "PROPN": ("noun",),
+    "VERB": ("verb",),
+    "AUX": ("verb",),
+    "ADJ": ("adjective", "adverb", "noun"),
+    "ADV": ("adverb", "adjective"),
+    "ADP": ("preposition", "adverb"),
+    "CCONJ": ("conjunction",),
+    "SCONJ": ("conjunction", "preposition"),
+    "PRON": ("pronoun",),
+    "DET": ("article", "adjective", "pronoun"),
+}
+
+
+def dictionary_pos_candidates(spacy_pos: str | None) -> tuple[str, ...]:
+    """Candidate dictionary parts of speech for a spaCy UPOS tag."""
+    if not spacy_pos:
+        return ()
+    return _SPACY_POS_TO_DICT_POS.get(spacy_pos, ())
+
+
+def dictionary_pos(spacy_pos: str | None) -> str | None:
+    """Primary dictionary part of speech for a spaCy UPOS tag."""
+    candidates = dictionary_pos_candidates(spacy_pos)
+    return candidates[0] if candidates else None
+
 # Spelled cardinals often appear in STE examples ("four bolts") alongside digits.
 _CARDINAL_WORDS = frozenset(
     {
@@ -180,6 +213,7 @@ class DictionaryEngine:
         self.glossary: Glossary | None = None
         self.preferred_terms: dict[str, str] = {}
         self._index: dict[str, DictionaryRecord] = {}
+        self._index_by_pos: dict[str, list[DictionaryRecord]] = {}
         self._loaded = False
 
     def load(
@@ -194,6 +228,7 @@ class DictionaryEngine:
         self.records = [DictionaryRecord.model_validate(item) for item in words]
 
         self._index.clear()
+        self._index_by_pos.clear()
         for record in self.records:
             self._index_record(record)
 
@@ -273,12 +308,16 @@ class DictionaryEngine:
             )
             if existing is not None and existing.status in _UNAPPROVED_STATUSES:
                 # Replace weaker unapproved index hit with technical allowance.
+                # The seeded sense must also reach the per-POS index, or a
+                # POS-aware lookup sees only the unapproved sense it overrides.
                 self.records.append(record)
                 self._index[key] = record
+                self._index_by_pos.setdefault(key, []).append(record)
                 for inflection in inflections:
                     ik = _normalize_key(inflection)
                     if ik:
                         self._index[ik] = record
+                        self._index_by_pos.setdefault(ik, []).append(record)
             else:
                 self.records.append(record)
                 self._index_record(record)
@@ -300,9 +339,18 @@ class DictionaryEngine:
                 self._index[key] = record
             elif existing.status in _UNAPPROVED_STATUSES and record.status in _APPROVED_STATUSES:
                 self._index[key] = record
+            # Keep every sense: the POS-blind ``_index`` above collapses them.
+            bucket = self._index_by_pos.setdefault(key, [])
+            if record not in bucket:
+                bucket.append(record)
 
     def lookup(self, word: str) -> DictionaryRecord | None:
-        """Case-insensitive lookup by headword or inflection."""
+        """Case-insensitive lookup by headword or inflection (POS-blind).
+
+        Prefer :meth:`lookup_sense` when a spaCy POS is available: this method
+        resolves a multi-sense headword to a single record and will hide an
+        unapproved sense behind an approved one (``check`` n. vs v.).
+        """
         self.ensure_loaded()
         if is_non_vocabulary_token(word):
             return None
@@ -311,6 +359,49 @@ class DictionaryEngine:
             if record is not None:
                 return record
         return None
+
+    def lookup_records(self, word: str) -> list[DictionaryRecord]:
+        """All dictionary senses for a surface form (one per part of speech)."""
+        self.ensure_loaded()
+        if is_non_vocabulary_token(word):
+            return []
+        for key in _morphology_keys(word):
+            records = self._index_by_pos.get(key)
+            if records:
+                return list(records)
+        return []
+
+    def lookup_sense(
+        self, word: str, pos: str | tuple[str, ...] | None = None
+    ) -> tuple[DictionaryRecord | None, bool]:
+        """Resolve a form to the sense matching ``pos``.
+
+        ``pos`` may be a single part of speech or a tuple of candidates in
+        preference order (see :func:`dictionary_pos_candidates`).
+
+        Returns ``(record, form_known)``. ``form_known`` is True when the form
+        exists in the dictionary under *some* part of speech; combined with a
+        ``None`` record it means "this word is listed, but not in the sense used
+        here" — the dictionary has no evidence about this usage, so callers
+        should not report it with the other sense's alternatives.
+        """
+        records = self.lookup_records(word)
+        if not records:
+            return None, False
+        if pos is None:
+            return self.lookup(word), True
+        wanted = (pos,) if isinstance(pos, str) else tuple(pos)
+        if not wanted:
+            return self.lookup(word), True
+        for candidate in wanted:
+            for record in records:
+                if (record.part_of_speech or "").lower() == candidate:
+                    return record, True
+        return None, True
+
+    def has_approved_sense(self, word: str) -> bool:
+        """True if any recorded sense of the form is approved."""
+        return any(r.status in _APPROVED_STATUSES for r in self.lookup_records(word))
 
     def lookup_payload(
         self, word: str, *, include_examples: bool = False
@@ -453,8 +544,60 @@ class DictionaryEngine:
                 raise ValueError(f"Invalid glossary entry: {item!r}")
         return entries
 
+    def _alternative_shares_pos(self, alt: str, pos: str | None) -> bool:
+        """True if ``alt`` is approved in the same part of speech as the source.
+
+        Blocks phrase-derived entries from being applied word-for-word: the
+        dictionary records ``event`` (noun) with the single alternative ``if``
+        because "in the event that" rewrites to "if", but ``if`` is a
+        conjunction, so substituting the bare word produces broken English.
+        """
+        if not pos:
+            return False
+        if " " in alt.strip():
+            # Multi-word alternative ("make sure") — POS of the phrase head is
+            # not recorded; allow only when the source is a verb phrase target.
+            return pos == "verb"
+        for record in self.lookup_records(alt):
+            if (record.part_of_speech or "").lower() != pos:
+                continue
+            if record.status in _APPROVED_STATUSES:
+                return True
+        return False
+
+    def safe_replacement_for(
+        self, word: str, pos: str | tuple[str, ...] | None
+    ) -> str | None:
+        """Unambiguous 1:1 replacement for ``word`` used as ``pos``, if any.
+
+        Returns None unless the *sense actually used* is unapproved and has
+        exactly one alternative that is approved in the same part of speech.
+        """
+        self.ensure_loaded()
+        key = _normalize_key(word)
+        preferred = self.preferred_terms.get(key)
+        if preferred is not None:
+            return preferred
+        record, _form_known = self.lookup_sense(word, pos)
+        if record is None:
+            return None
+        pos = (record.part_of_speech or "").lower()
+        if record.status not in (WordStatus.UNAPPROVED, WordStatus.FORBIDDEN):
+            return None
+        if len(record.alternatives) != 1:
+            return None
+        alt = record.alternatives[0]
+        if not self._alternative_shares_pos(alt, pos):
+            return None
+        return alt
+
     def safe_replacements(self) -> dict[str, str]:
-        """Map lowercased forms -> single unambiguous approved alternative."""
+        """Map lowercased forms -> single unambiguous approved alternative.
+
+        POS-blind and therefore conservative: a form with more than one sense
+        is excluded entirely, because whether the replacement is correct
+        depends on how the word is used. Prefer :meth:`safe_replacement_for`.
+        """
         self.ensure_loaded()
         mapping: dict[str, str] = {}
         for src, dest in self.preferred_terms.items():
@@ -465,11 +608,19 @@ class DictionaryEngine:
             if len(record.alternatives) != 1:
                 continue
             alt = record.alternatives[0]
+            pos = (record.part_of_speech or "").lower()
+            if not self._alternative_shares_pos(alt, pos):
+                continue
             forms = [record.word, *record.inflections]
             for form in forms:
                 key = _normalize_key(form)
-                if key and key not in mapping:
-                    mapping[key] = alt
+                if not key or key in mapping:
+                    continue
+                # Ambiguous form: another sense exists, so a context-free
+                # replacement cannot be shown to be safe.
+                if len(self.lookup_records(key)) > 1:
+                    continue
+                mapping[key] = alt
         return mapping
 
 

@@ -3,10 +3,14 @@
 from __future__ import annotations
 
 import difflib
-import re
 from typing import Any
 
-from ste100.dictionary.engine import DictionaryEngine, resolve_engine
+from ste100.dictionary.engine import (
+    DictionaryEngine,
+    is_non_vocabulary_token,
+    resolve_engine,
+)
+from ste100.rules.spacy_util import token_pos_candidates
 
 
 def _preserve_case(original: str, replacement: str) -> str:
@@ -25,45 +29,44 @@ def apply_safe_fixes(
     *,
     dictionary: DictionaryEngine | None = None,
 ) -> dict[str, Any]:
-    """Apply unambiguous 1:1 synonym replacements; return text + unified diff."""
+    """Apply unambiguous 1:1 synonym replacements; return text + unified diff.
+
+    Replacement is decided per token from the part of speech spaCy assigns it,
+    not from the surface form. A context-free pass cannot tell the approved
+    noun ``power supply`` from the unapproved verb ``to power``, and rewrites
+    the former into ``supply supply``.
+    """
+    from ste100.core.analyzer import get_nlp
+
     engine = resolve_engine(dictionary, glossary_path)
-    mapping = engine.safe_replacements()
-    if not mapping:
-        return {
-            "original": text,
-            "fixed": text,
-            "diff": "",
-            "replacements_applied": [],
-        }
+    engine.ensure_loaded()
 
-    # Longest keys first to prefer multi-word forms if present
-    keys = sorted(mapping.keys(), key=len, reverse=True)
-    pattern = re.compile(
-        r"\b(" + "|".join(re.escape(k) for k in keys) + r")\b",
-        re.IGNORECASE,
-    )
-
+    doc = get_nlp()(text)
     replacements_applied: list[dict[str, str | int]] = []
+    pieces: list[str] = []
+    cursor = 0
 
-    def _repl(match: re.Match[str]) -> str:
-        original = match.group(0)
-        key = original.lower()
-        dest = mapping.get(key)
+    for token in doc:
+        original = token.text
+        if token.is_space or token.is_punct or is_non_vocabulary_token(original):
+            continue
+        dest = engine.safe_replacement_for(original, token_pos_candidates(token))
         if dest is None:
-            return original
+            continue
         fixed = _preserve_case(original, dest)
-        if fixed != original:
-            replacements_applied.append(
-                {
-                    "from": original,
-                    "to": fixed,
-                    "start": match.start(),
-                    "end": match.end(),
-                }
-            )
-        return fixed
+        if fixed == original:
+            continue
+        start = token.idx
+        end = start + len(original)
+        pieces.append(text[cursor:start])
+        pieces.append(fixed)
+        cursor = end
+        replacements_applied.append(
+            {"from": original, "to": fixed, "start": start, "end": end}
+        )
 
-    fixed_text = pattern.sub(_repl, text)
+    pieces.append(text[cursor:])
+    fixed_text = "".join(pieces)
     diff = "".join(
         difflib.unified_diff(
             text.splitlines(keepends=True),
