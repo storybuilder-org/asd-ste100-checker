@@ -250,6 +250,27 @@ def test_url_or_path_in_code_is_one_name(code: str, name: str) -> None:
         assert not any(n != name and n in name for n in names), (text, names)
 
 
+def test_placeholder_in_a_path_is_part_of_the_path() -> None:
+    """issue-8-design.md: `devdocs/issue-<n>-design-glossary.yaml`."""
+    name = "devdocs/issue-<n>-design-glossary.yaml"
+    text = f"The list is `{name}` now.\n"
+    names = [text[f.start : f.end] for f in _vocab(text, markdown=True)
+             if f.evidence.get("status") == "name_not_in_glossary"]
+    assert names == [name]
+
+
+@pytest.mark.parametrize(("code", "names"), [
+    ("node --test", ["--test"]),
+    ("uv tool dir --bin", ["--bin"]),
+])
+def test_command_with_an_option_in_a_code_span_is_code(code: str, names: list[str]) -> None:
+    """A code span with an option (-x or --name) is a command, not quoted text."""
+    text = f"Give the command `{code}` now.\n"
+    found = [text[f.start : f.end] for f in _vocab(text, markdown=True)
+             if f.evidence.get("status") == "name_not_in_glossary"]
+    assert found == names
+
+
 def test_listed_names_in_a_fenced_code_block_get_no_finding(tmp_path: Path) -> None:
     text = "Do the test.\n\n```\nvar x = Foo.Bar(1);\n```\n"
     fence_start = text.index("```")
