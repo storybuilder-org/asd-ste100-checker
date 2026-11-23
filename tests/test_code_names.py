@@ -1,12 +1,14 @@
-"""Code names and file names are not vocabulary.
+"""A file name or code name is one word, checked against the word files.
 
-A name from code or a file path is not an English word, so the vocabulary
-rules must not report it, and must not split it and report the pieces.
+A name is not an English word, so it is not looked up in the STE dictionary,
+and it is not split into pieces. It is looked up whole in the glossary files.
+A name that no glossary lists gets one finding, for the whole name.
 """
 
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 import pytest
 from click.testing import CliRunner
@@ -14,81 +16,90 @@ from click.testing import CliRunner
 from ste100.cli import main
 from ste100.core.analyzer import analyze
 
+NAMES = [
+    "process.md",
+    "lookup_sense",
+    "DictionaryEngine",
+    "DictionaryEngine.lookup_sense",
+    "storybuilder-org/process",
+    "issue-8-design.md",
+    "https://github.com/storybuilder-org/process",
+]
 
-def _vocab_words(text: str, **kwargs) -> set[str]:
+
+def _vocab(text: str, **kwargs):
     result = analyze(text, text_type="description", **kwargs)
-    return {
-        f.evidence.get("word")
-        for f in result.findings
-        if f.rule_id.startswith("STE-VOCAB")
-    }
+    return [f for f in result.findings if f.rule_id.startswith("STE-VOCAB")]
 
 
-@pytest.mark.parametrize(
-    "name",
-    [
-        "process.md",
-        "lookup_sense",
-        "DictionaryEngine",
-        "DictionaryEngine.lookup_sense",
-    ],
-)
-def test_bare_code_name_is_not_reported(name: str) -> None:
-    assert name not in _vocab_words(f"The name {name} is in the code.")
-
-
-@pytest.mark.parametrize(
-    ("text", "pieces"),
-    [
-        ("Open storybuilder-org/process now.", {"storybuilder", "org", "process"}),
-        ("Read issue-8-design.md first.", {"issue", "design", "design.md"}),
-        ("See https://github.com/storybuilder-org/process now.",
-         {"github.com", "storybuilder", "org", "process"}),
-    ],
-)
-def test_bare_hyphenated_path_is_not_split(text: str, pieces: set[str]) -> None:
-    assert not _vocab_words(text) & pieces
-
-
-def test_word_pair_with_a_slash_is_still_prose() -> None:
-    from ste100.core.markdown import mask_path_names
-
-    assert mask_path_names("Set the switch on/off and/or wait.") == (
-        "Set the switch on/off and/or wait."
+def _glossary(tmp_path: Path, *names: str) -> str:
+    path = tmp_path / "names.yaml"
+    path.write_text(
+        "technical_nouns:\n" + "".join(f"  - '{n}'\n" for n in names), encoding="utf-8"
     )
+    return str(path)
 
 
-def test_abbreviation_with_periods_is_still_reported() -> None:
-    """'e.g.' is not a code name. A dotted name does not end in a period."""
-    assert "e.g." in _vocab_words("Use a tool, e.g. a wrench.")
+@pytest.mark.parametrize("name", NAMES)
+def test_unlisted_name_gets_one_finding_for_the_whole_name(name: str) -> None:
+    text = f"The name {name} is in the code."
+    hits = [f for f in _vocab(text) if text.find(name) <= f.start < text.find(name) + len(name)]
+    assert len(hits) == 1
+    assert text[hits[0].start : hits[0].end] == name
+    assert hits[0].evidence["status"] == "name_not_in_glossary"
 
 
-def test_code_span_is_not_reported_or_split() -> None:
+@pytest.mark.parametrize("name", NAMES)
+def test_listed_name_gets_no_finding(tmp_path: Path, name: str) -> None:
+    text = f"The name {name} is in the code."
+    start = text.find(name)
+    hits = [f for f in _vocab(text, glossary_path=_glossary(tmp_path, name))
+            if start <= f.start < start + len(name)]
+    assert hits == []
+
+
+def test_code_span_is_one_name(tmp_path: Path) -> None:
     text = "The design is in `storybuilder-miscellaneous/devdocs` now.\n"
-    words = _vocab_words(text, markdown=True)
-    assert not words & {"storybuilder", "miscellaneous", "devdocs"}
+    hits = [f for f in _vocab(text, markdown=True) if "`" in text[: f.start]
+            and f.start < text.rindex("`")]
+    assert len(hits) == 1
+    assert text[hits[0].start : hits[0].end] == "storybuilder-miscellaneous/devdocs"
+
+
+def test_plain_word_in_a_code_span_is_a_name() -> None:
+    """`check` in backticks is the name of something, not the verb."""
+    text = "Set the value to `check` now.\n"
+    hits = [f for f in _vocab(text, markdown=True) if text[f.start : f.end] == "check"]
+    assert len(hits) == 1
+    assert hits[0].evidence["status"] == "name_not_in_glossary"
 
 
 def test_fenced_code_block_is_not_checked() -> None:
+    """rules/writing-standards.md: the standards do not apply to code."""
     text = "Do the test.\n\n```\nutilize_everything --now\nfoo bar baz\n```\n"
     result = analyze(text, text_type="procedure", markdown=True)
     fence_start = text.index("```")
     assert [f for f in result.findings if f.start >= fence_start] == []
 
 
-def test_offsets_after_a_code_span_point_into_the_original_text() -> None:
-    text = "Open `a_file.md` and utilize the tool.\n"
-    result = analyze(text, text_type="procedure", markdown=True)
-    hits = [f for f in result.findings if f.evidence.get("word") == "utilize"]
+def test_abbreviation_with_periods_is_still_a_word() -> None:
+    """'e.g.' is not a name. It is checked against the dictionary."""
+    hits = [f for f in _vocab("Use a tool, e.g. a wrench.") if f.evidence.get("word") == "e.g."]
     assert len(hits) == 1
-    assert text[hits[0].start : hits[0].end] == "utilize"
+    assert hits[0].evidence["status"] != "name_not_in_glossary"
 
 
-def test_cli_treats_a_markdown_file_as_markdown(tmp_path) -> None:
+def test_word_pair_with_a_slash_is_not_a_name() -> None:
+    for f in _vocab("Set the switch on/off and/or wait."):
+        assert f.evidence.get("status") != "name_not_in_glossary"
+
+
+def test_cli_treats_a_markdown_file_as_markdown(tmp_path: Path) -> None:
     path = tmp_path / "design.md"
     path.write_text("The data is in `storybuilder-miscellaneous/devdocs` now.\n",
                     encoding="utf-8")
     result = CliRunner().invoke(main, ["check", str(path), "--text-type", "description"])
     payload = json.loads(result.output)
-    words = {f["evidence"].get("word") for f in payload["findings"]}
-    assert not words & {"storybuilder", "miscellaneous", "devdocs"}
+    words = [f["evidence"].get("word") for f in payload["findings"]]
+    assert "storybuilder-miscellaneous/devdocs" in words
+    assert not set(words) & {"storybuilder", "miscellaneous", "devdocs"}
