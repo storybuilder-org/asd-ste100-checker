@@ -70,6 +70,16 @@ def test_glossary_noun_overrides_an_unapproved_dictionary_noun(tmp_path: Path) -
     assert "request" not in _words(result)
 
 
+def test_plural_of_a_glossary_noun_is_accepted(tmp_path: Path) -> None:
+    glossary = _write(tmp_path / "g.yaml", "defect", "repo", "summary")
+    result = analyze(
+        "The defects are in the repos. Read the summaries.",
+        text_type="description",
+        glossary_path=str(glossary),
+    )
+    assert not _words(result) & {"defects", "repos", "summaries"}
+
+
 def test_cli_takes_more_than_one_glossary(shared: Path, issue: Path) -> None:
     result = CliRunner().invoke(
         main,
