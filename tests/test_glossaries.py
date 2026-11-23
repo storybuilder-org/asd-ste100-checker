@@ -61,6 +61,15 @@ def test_words_of_a_term_are_still_checked_alone(shared: Path) -> None:
     assert "span" in _words(result)
 
 
+def test_glossary_noun_overrides_an_unapproved_dictionary_noun(tmp_path: Path) -> None:
+    """The dictionary lists 'request' as an unapproved noun. A technical noun of
+    the same spelling in a glossary must win, as it did before the lookup by
+    part of speech."""
+    glossary = _write(tmp_path / "g.yaml", "request")
+    result = analyze("Send the request.", text_type="procedure", glossary_path=str(glossary))
+    assert "request" not in _words(result)
+
+
 def test_cli_takes_more_than_one_glossary(shared: Path, issue: Path) -> None:
     result = CliRunner().invoke(
         main,
