@@ -185,10 +185,12 @@ def prepare_markdown(
             content = line[s:e]
             if _PATH_CONTENT.match(content):
                 names.append((here + s, here + e))  # one name: a file, a path
-            elif any(ch in _CODE_CHARS for ch in content) or _HAS_OPTION.search(content):
-                # Code: each name in it is checked. The characters between the
-                # names (numbers, punctuation) become spaces, so the tokenizer
-                # does not join them to a name.
+            elif " " in content or any(ch in _CODE_CHARS for ch in content):
+                # Code, or literal text (a value, a message) that the author
+                # cannot write again: each word in it is checked as a code
+                # word or a name. The characters between the words (numbers,
+                # punctuation) become spaces, so the tokenizer does not join
+                # them to a word.
                 found = [(s + a, s + b, n) for a, b, n in _words_in_code(content)]
                 chars = list(line)
                 for i in range(s, e):
@@ -197,9 +199,8 @@ def prepare_markdown(
                 line = "".join(chars)
                 names.extend((here + a, here + b) for a, b, n in found if n)
                 code_words.extend((here + a, here + b) for a, b, n in found if not n)
-            elif " " not in content:
-                names.append((here + s, here + e))  # one name: a file, a path
-            # Otherwise the span quotes text, and its words are checked as words.
+            else:
+                names.append((here + s, here + e))  # one name: a file, a value
 
         heading = _HEADING.match(line)
         if heading:

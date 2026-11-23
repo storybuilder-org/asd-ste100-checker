@@ -130,7 +130,7 @@ def test_quoted_text_in_a_code_span_is_checked_word_by_word() -> None:
     message from a program, that the design cannot write again. Each word is
     checked: an approved lower-case word passes, any other word is a name that
     a glossary must list."""
-    text = "An answer is `not fixed` or `Utilize the tool now.` here.\n"
+    text = "An answer is `not fixed` or `Utilize the tool.` here.\n"
     findings = _vocab(text, markdown=True)
     names = [text[f.start : f.end] for f in findings
              if f.evidence.get("status") == "name_not_in_glossary"]

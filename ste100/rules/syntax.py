@@ -408,6 +408,8 @@ def check_verb_form(doc: Doc, context: AnalysisContext) -> list[Finding]:
         if is_non_prose(sent):
             continue
         for verb, cue, high in _verb_form_hits(sent):
+            if verb.i in context.name_tokens or verb.i in context.code_word_tokens:
+                continue  # a name or a word in code is not a verb of the text
             fragment = is_fragment(sent)
             sev = _severity(high, fragment)
             conf = confidence_for(high=high, fragment=fragment)
