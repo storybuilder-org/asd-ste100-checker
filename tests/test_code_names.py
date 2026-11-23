@@ -96,6 +96,30 @@ def test_plain_word_in_a_code_span_is_a_name() -> None:
     assert hits[0].evidence["status"] == "name_not_in_glossary"
 
 
+def test_quoted_text_in_a_code_span_is_checked_word_by_word() -> None:
+    """A code span with a space quotes text; it is not a name."""
+    text = "Add the line `Utilize the tool now.` to the file.\n"
+    findings = _vocab(text, markdown=True)
+    assert "Utilize" in {f.evidence.get("word") for f in findings}
+    assert not [f for f in findings if f.evidence.get("status") == "name_not_in_glossary"
+                and " " in text[f.start : f.end]]
+
+
+def test_link_url_is_one_name_without_the_link_markup() -> None:
+    url = "https://github.com/storybuilder-org/process/issues/8"
+    text = f"Read [the issue]({url}) first.\n"
+    names = [text[f.start : f.end] for f in _vocab(text, markdown=True)
+             if f.evidence.get("status") == "name_not_in_glossary"]
+    assert names == [url]
+
+
+@pytest.mark.parametrize("span", ["9500", "3377c2e", "<!--", "- [ ]"])
+def test_number_or_symbols_in_a_code_span_is_not_a_name(span: str) -> None:
+    text = f"Write `{span}` there.\n"
+    assert [f for f in _vocab(text, markdown=True)
+            if f.evidence.get("status") == "name_not_in_glossary"] == []
+
+
 def test_fenced_code_block_is_not_checked() -> None:
     """rules/writing-standards.md: the standards do not apply to code."""
     text = "Do the test.\n\n```\nutilize_everything --now\nfoo bar baz\n```\n"
