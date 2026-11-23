@@ -45,6 +45,10 @@ def _code_spans(line: str) -> list[tuple[int, int]]:
     return out
 
 
+# Characters that mark the content of a code span as code, not a name or text.
+_CODE_CHARS = frozenset("(){}[]<>=;\\\"',?!&*+|")
+_IDENTIFIER = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
+
 _LINK = re.compile(r"!?\[([^\]\n]*)\]\(([^)\s]+)\)")
 
 
@@ -109,9 +113,23 @@ def prepare_markdown(text: str) -> tuple[str, list[int], list[tuple[int, int]]]:
             continue
 
         spans = _code_spans(line)
-        # A code span with a space quotes text; its words are checked as words.
-        names.extend((here + s, here + e) for s, e in spans if " " not in line[s:e])
         line = _blank_link_markup(line, spans)
+        for s, e in spans:
+            content = line[s:e]
+            if any(ch in _CODE_CHARS for ch in content):
+                # Code: each name in it is checked. The characters between the
+                # names (numbers, punctuation) become spaces, so the tokenizer
+                # does not join them to a name.
+                found = [(s + m.start(), s + m.end()) for m in _IDENTIFIER.finditer(content)]
+                chars = list(line)
+                for i in range(s, e):
+                    if not any(a <= i < b for a, b in found):
+                        chars[i] = " "
+                line = "".join(chars)
+                names.extend((here + a, here + b) for a, b in found)
+            elif " " not in content:
+                names.append((here + s, here + e))  # one name: a file, a path
+            # Otherwise the span quotes text, and its words are checked as words.
 
         heading = _HEADING.match(line)
         if heading:
