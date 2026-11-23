@@ -406,9 +406,13 @@ class DictionaryEngine:
         if not wanted:
             return self.lookup(word), True
         for candidate in wanted:
-            for record in records:
-                if (record.part_of_speech or "").lower() == candidate:
-                    return record, True
+            matches = [r for r in records if (r.part_of_speech or "").lower() == candidate]
+            if matches:
+                # A glossary or seed entry of the same part of speech overrides
+                # the dictionary's unapproved sense ("request" as a technical
+                # noun), so an approved match wins.
+                approved = [r for r in matches if r.status in _APPROVED_STATUSES]
+                return (approved or matches)[0], True
         return None, True
 
     def has_approved_sense(self, word: str) -> bool:
