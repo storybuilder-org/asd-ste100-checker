@@ -5,7 +5,8 @@ a finding point into the original text. The pre-pass gives:
 
 - the offsets where a sentence must start: each heading, each table cell,
   and the first line of each block;
-- the character ranges of code spans, each of which is one name.
+- the character ranges of the names: a code span that is one name, and
+  each name inside code.
 """
 
 from __future__ import annotations
@@ -81,8 +82,11 @@ def _table_pipes(line: str, spans: list[tuple[int, int]]) -> list[int]:
 def prepare_markdown(text: str) -> tuple[str, list[int], list[tuple[int, int]]]:
     """Return the prepared text, the sentence starts, and the code-span ranges.
 
-    - A fenced code block is blanked: the standards do not apply to code.
-    - A heading marker, a table pipe and a table delimiter row become spaces.
+    - In a fenced code block and in a code span that holds code, each name is
+      kept and returned as a name; the numbers and punctuation between the
+      names become spaces. Nothing that could be a name is left out.
+    - A heading marker, a table pipe, a table delimiter row, a fence line and
+      the markup of a link become spaces.
     - A sentence starts at each heading, at each table cell, and at the first
       line after a blank line, a heading or a table row.
     """
@@ -96,11 +100,21 @@ def prepare_markdown(text: str) -> tuple[str, list[int], list[tuple[int, int]]]:
         here = offset
         offset += len(line)
         if fence is not None:
-            out.append(_blank(line))
             stripped = line.strip()
             if stripped.startswith(fence) and set(stripped) == {fence[0]}:
+                out.append(_blank(line))  # the closing fence is markup
                 fence = None
                 new_block = True
+                continue
+            # Code: each name is checked, and each is its own sentence, so the
+            # sentence rules do not read a line of code as prose.
+            found = [m.span() for m in _IDENTIFIER.finditer(line)]
+            chars = [" " if ch not in "\r\n" else ch for ch in line]
+            for a, b in found:
+                chars[a:b] = line[a:b]
+                names.append((here + a, here + b))
+                starts.append(here + a)
+            out.append("".join(chars))
             continue
         opened = _FENCE_OPEN.match(line)
         if opened:

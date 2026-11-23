@@ -205,8 +205,8 @@ def analyze(
 
     A file name, code name or URL is one token, checked against the
     glossaries (see :func:`ste100.dictionary.engine.is_code_name`). With
-    ``markdown``, fenced code is left out, a code span is one name, and each
-    heading and table cell is a sentence (see :mod:`ste100.core.markdown`).
+    ``markdown``, each name in code is checked against the glossaries, and
+    each heading and table cell is a sentence (see :mod:`ste100.core.markdown`).
     Finding offsets refer to ``text``.
     """
     requested = _parse_text_type(text_type)
