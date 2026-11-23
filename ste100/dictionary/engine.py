@@ -132,16 +132,29 @@ def is_non_vocabulary_token(word: str) -> bool:
     # Isolated punctuation / symbols
     if not any(ch.isalpha() for ch in stripped):
         return True
-    # Code names and file names (lookup_sense, DictionaryEngine, process.md)
-    if _CODE_NAME_RE.search(stripped) and not stripped.endswith("."):
-        return True
     return False
 
 
 # An underscore, a lower-case letter followed by a capital (camelCase,
 # PascalCase), or a period or slash between two word characters. A dotted
-# abbreviation such as "e.g." ends in a period and is not matched.
-_CODE_NAME_RE = re.compile(r"_|[a-z][A-Z]|\w[./]\w")
+# abbreviation such as "e.g." ends in a period and is not matched. A pair
+# such as "and/or" has one slash and no hyphen or period, and is not a name.
+_CODE_NAME_RE = re.compile(r"_|[a-z][A-Z]|\w\.\w")
+_PATH_RE = re.compile(r"\w/\w")
+
+
+def is_code_name(word: str) -> bool:
+    """True for a file name or code name (process.md, lookup_sense,
+    DictionaryEngine, storybuilder-org/process). A name is not an English
+    word: it is checked against the glossaries, not the dictionary."""
+    stripped = word.strip()
+    if stripped.endswith("."):
+        return False
+    if _CODE_NAME_RE.search(stripped):
+        return True
+    if _PATH_RE.search(stripped):
+        return "-" in stripped or stripped.count("/") >= 2
+    return False
 
 
 def _simple_plural(word: str) -> str | None:
@@ -224,6 +237,8 @@ class DictionaryEngine:
         self.preferred_terms: dict[str, str] = {}
         # Glossary terms of more than one word, as lower-case word tuples.
         self.multiword_terms: set[tuple[str, ...]] = set()
+        # Every word a glossary lists, lower case. A name must be one of them.
+        self.glossary_words: set[str] = set()
         self._index: dict[str, DictionaryRecord] = {}
         self._index_by_pos: dict[str, list[DictionaryRecord]] = {}
         self._loaded = False
@@ -523,8 +538,13 @@ class DictionaryEngine:
 
         for entry in (*glossary.technical_nouns, *glossary.technical_verbs):
             self._add_multiword_term(entry)
+            self.glossary_words.add(_normalize_key(entry.word))
 
         return glossary
+
+    def is_listed_name(self, name: str) -> bool:
+        """True if a glossary lists the name."""
+        return _normalize_key(name) in self.glossary_words
 
     def _add_multiword_term(self, entry: GlossaryEntry) -> None:
         """Record a term of more than one word, with its inflected forms."""

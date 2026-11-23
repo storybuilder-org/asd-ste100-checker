@@ -22,3 +22,5 @@ class AnalysisContext:
     dictionary: DictionaryEngine
     # Token indexes inside a glossary term of more than one word.
     term_tokens: frozenset[int] = field(default_factory=frozenset)
+    # Token indexes of file names, code names and URLs.
+    name_tokens: frozenset[int] = field(default_factory=frozenset)

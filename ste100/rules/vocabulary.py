@@ -49,6 +49,29 @@ def check_vocabulary(doc: Doc, context: AnalysisContext) -> list[Finding]:
         if token.i in context.term_tokens:
             continue
         text = token.text
+        if token.i in context.name_tokens:
+            # A name is not an English word: a glossary must list it.
+            if not context.dictionary.is_listed_name(text):
+                findings.append(
+                    Finding(
+                        rule_id=RULE_UNAPPROVED,
+                        severity=Severity.ERROR,
+                        message=(
+                            f"Name '{text}' is not in a glossary. Add it to the "
+                            "glossary of names, or write it differently."
+                        ),
+                        start=token.idx,
+                        end=token.idx + len(text),
+                        sentence=sentence_index_for_token(token),
+                        evidence={
+                            "rule_ref": "Rule 1.5",
+                            "word": text,
+                            "status": "name_not_in_glossary",
+                        },
+                        suggestions=[],
+                    )
+                )
+            continue
         if is_non_vocabulary_token(text):
             continue
         if not any(ch.isalpha() for ch in text):

@@ -1,9 +1,11 @@
-"""Markdown pre-pass: hide what is not prose, and keep every offset.
+"""Markdown pre-pass: find the structure, and keep every offset.
 
-The masked text has the same length as the input, so the start and end of a
-finding point into the original text. The pre-pass also gives the offsets
-where a sentence must start: each heading, each table cell, and the first
-line of each block.
+The returned text has the same length as the input, so the start and end of
+a finding point into the original text. The pre-pass gives:
+
+- the offsets where a sentence must start: each heading, each table cell,
+  and the first line of each block;
+- the character ranges of code spans, each of which is one name.
 """
 
 from __future__ import annotations
@@ -14,21 +16,12 @@ _FENCE_OPEN = re.compile(r"^ {0,3}(`{3,}|~{3,})")
 _CODE_SPAN = re.compile(r"(?<!`)(`+)(?!`)(.+?)(?<!`)\1(?!`)")
 _HEADING = re.compile(r"^( {0,3}#{1,6})(?=\s|$)")
 _TABLE_DELIMITER = re.compile(r"^\s*\|?\s*:?-+:?\s*(\|\s*:?-+:?\s*)*\|?\s*$")
-_UNESCAPED_PIPE = re.compile(r"(?<!\\)\|")
-
-# A code span becomes one placeholder word. An all-capital word is a label to
-# the vocabulary rules, so the placeholder is not reported.
-_SPAN_FILL = "X"
 
 
 def _blank(line: str) -> str:
     """Spaces in place of every character, except the line end."""
     body = line.rstrip("\r\n")
     return " " * len(body) + line[len(body) :]
-
-
-def _mask_code_spans(line: str) -> str:
-    return _CODE_SPAN.sub(lambda m: _SPAN_FILL * len(m.group(0)), line)
 
 
 def _first_text(line: str, offset: int) -> list[int]:
@@ -39,18 +32,42 @@ def _first_text(line: str, offset: int) -> list[int]:
     return [offset + len(line) - len(stripped)]
 
 
-def prepare_markdown(text: str) -> tuple[str, list[int]]:
-    """Return the masked text and the offsets where a sentence starts.
+def _code_spans(line: str) -> list[tuple[int, int]]:
+    """(start, end) of the content of each code span, inside ``line``."""
+    out = []
+    for m in _CODE_SPAN.finditer(line):
+        start, end = m.start(2), m.end(2)
+        content = m.group(2)
+        start += len(content) - len(content.lstrip())
+        end -= len(content) - len(content.rstrip())
+        if start < end:
+            out.append((start, end))
+    return out
 
-    - A fenced code block is blanked.
-    - A code span becomes a placeholder word of the same length.
-    - A heading marker and a table pipe become spaces. A table delimiter row
-      is blanked.
+
+def _table_pipes(line: str, spans: list[tuple[int, int]]) -> list[int]:
+    """Positions of the cell separators: unescaped pipes outside code spans."""
+    pipes = []
+    for i, ch in enumerate(line):
+        if ch != "|" or (i > 0 and line[i - 1] == "\\"):
+            continue
+        if any(s - 1 <= i <= e for s, e in spans):
+            continue
+        pipes.append(i)
+    return pipes
+
+
+def prepare_markdown(text: str) -> tuple[str, list[int], list[tuple[int, int]]]:
+    """Return the prepared text, the sentence starts, and the code-span ranges.
+
+    - A fenced code block is blanked: the standards do not apply to code.
+    - A heading marker, a table pipe and a table delimiter row become spaces.
     - A sentence starts at each heading, at each table cell, and at the first
       line after a blank line, a heading or a table row.
     """
     out: list[str] = []
     starts: list[int] = []
+    names: list[tuple[int, int]] = []
     fence: str | None = None
     new_block = True
     offset = 0
@@ -74,56 +91,38 @@ def prepare_markdown(text: str) -> tuple[str, list[int]]:
             new_block = True
             continue
 
-        masked = _mask_code_spans(line)
-        heading = _HEADING.match(masked)
+        spans = _code_spans(line)
+        names.extend((here + s, here + e) for s, e in spans)
+
+        heading = _HEADING.match(line)
         if heading:
             marker = heading.group(1)
-            masked = " " * len(marker) + masked[len(marker) :]
-            starts.extend(_first_text(masked, here))
-            out.append(masked)
+            line = " " * len(marker) + line[len(marker) :]
+            starts.extend(_first_text(line, here))
+            out.append(line)
             new_block = True
             continue
-        if masked.lstrip().startswith("|"):
-            if _TABLE_DELIMITER.match(masked):
-                out.append(_blank(masked))
+        if line.lstrip().startswith("|"):
+            if _TABLE_DELIMITER.match(line):
+                out.append(_blank(line))
             else:
-                cells = _UNESCAPED_PIPE.split(masked)
-                pos = here
-                for cell in cells:
-                    starts.extend(_first_text(cell, pos))
-                    pos += len(cell) + 1
-                out.append(_UNESCAPED_PIPE.sub(" ", masked))
+                pipes = _table_pipes(line, spans)
+                chars = list(line)
+                cell_start = 0
+                for p in [*pipes, len(line)]:
+                    starts.extend(_first_text(line[cell_start:p], here + cell_start))
+                    cell_start = p + 1
+                for p in pipes:
+                    chars[p] = " "
+                out.append("".join(chars))
             new_block = True
             continue
 
         if new_block:
-            starts.extend(_first_text(masked, here))
+            starts.extend(_first_text(line, here))
             new_block = False
-        out.append(masked)
+        out.append(line)
 
     result = "".join(out)
     assert len(result) == len(text)
-    return result, starts
-
-
-_PATH_NAME = re.compile(r"(?<![\w./-])[\w.-]*\w/[\w./-]*\w")
-
-
-def mask_path_names(text: str) -> str:
-    """Replace each path such as ``storybuilder-org/process`` with one
-    placeholder word of the same length. The tokenizer splits a word at a
-    hyphen, so a path is hidden before it runs. A pair such as "and/or" has
-    no hyphen, no period and one slash, and stays prose."""
-
-    def _fill(m: re.Match[str]) -> str:
-        found = m.group(0)
-        if "-" in found or "." in found or found.count("/") >= 2:
-            return _SPAN_FILL * len(found)
-        return found
-
-    return _PATH_NAME.sub(_fill, text)
-
-
-def mask_markdown(text: str) -> str:
-    """Return ``text`` with code hidden. See :func:`prepare_markdown`."""
-    return prepare_markdown(text)[0]
+    return result, starts, names
