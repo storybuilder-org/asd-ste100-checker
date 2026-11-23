@@ -148,6 +148,25 @@ def test_each_name_in_code_is_checked(code: str, names: list[str]) -> None:
     assert all(f.evidence["status"] == "name_not_in_glossary" for f in _span_findings(text))
 
 
+def test_lowercase_word_in_code_is_checked_as_a_word() -> None:
+    """issue-1638-design.md: `File {filePath} is unavailable.` The lower-case
+    words are English and are checked against the dictionary; 'File' and
+    'filePath' are names."""
+    text = "Line 415 writes `File {filePath} is unavailable.` at the start.\n"
+    findings = _span_findings(text)
+    names = [text[f.start : f.end] for f in findings
+             if f.evidence.get("status") == "name_not_in_glossary"]
+    assert names == ["File", "filePath"]
+    assert "is" not in [text[f.start : f.end] for f in findings]
+
+
+def test_unapproved_lowercase_word_in_code_is_reported_as_a_word() -> None:
+    text = "The comment says `// utilize {x} here`.\n"
+    hits = [f for f in _span_findings(text) if text[f.start : f.end] == "utilize"]
+    assert len(hits) == 1
+    assert hits[0].evidence["status"] != "name_not_in_glossary"
+
+
 def test_listed_names_in_code_get_no_finding(tmp_path: Path) -> None:
     text = "Record the value that `Document.GetRange(0, 1).CharacterFormat` returns.\n"
     glossary = _glossary(tmp_path, "Document", "GetRange", "CharacterFormat")
@@ -164,8 +183,11 @@ def test_rtf_in_a_table_cell_is_checked_name_by_name() -> None:
     start = text.index("`")
     findings = [f for f in analyze(text, text_type="description", markdown=True).findings
                 if f.start >= start]
-    found = [text[f.start : f.end] for f in findings]
-    assert found == ["rtf1", "colortbl", "red0", "green0", "blue0", "cf1", "a", "par"]
+    names = [text[f.start : f.end] for f in findings
+             if f.evidence.get("status") == "name_not_in_glossary"]
+    assert names == ["rtf1", "red0", "green0", "blue0", "cf1"]
+    # 'a' is an approved English word.
+    assert "a" not in [text[f.start : f.end] for f in findings]
 
 
 def test_link_url_is_one_name_without_the_link_markup() -> None:
@@ -190,8 +212,11 @@ def test_each_name_in_a_fenced_code_block_is_checked() -> None:
     fence_start = text.index("```")
     findings = [f for f in analyze(text, text_type="procedure", markdown=True).findings
                 if f.start >= fence_start]
-    assert [text[f.start : f.end] for f in findings] == ["var", "x", "Foo", "Bar"]
-    assert all(f.evidence["status"] == "name_not_in_glossary" for f in findings)
+    names = [text[f.start : f.end] for f in findings
+             if f.evidence.get("status") == "name_not_in_glossary"]
+    assert names == ["Foo", "Bar"]
+    # 'var' is lower case: it is checked as a word, and it is not in the dictionary.
+    assert "var" in [text[f.start : f.end] for f in findings]
 
 
 def test_listed_names_in_a_fenced_code_block_get_no_finding(tmp_path: Path) -> None:
