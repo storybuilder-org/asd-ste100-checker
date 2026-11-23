@@ -67,6 +67,33 @@ _LOWERCASE_WORD = re.compile(r"^[a-z]+$")
 # A file path with no space: D:\dev\src\CLAUDE.md, ~/.claude/CLAUDE.md.
 _PATH_CONTENT = re.compile(r"^(?:[A-Za-z]:)?[\w.~-]*(?:[\\/][\w.~-]+)+[\\/]?$")
 
+_CODE_URL = re.compile(r"https?://[^\s\"'`<>()\[\]{}]*[^\s\"'`<>()\[\]{}.,;:!?]")
+_CODE_CHUNK = re.compile(r"[^\s\"'`<>()\[\]{}=;,|&*+!?]+")
+# A path inside code: a drive and backslashes (D:\dev\src), or a word and
+# forward slashes (process/word-lists/shared.yaml, ~/.claude). An RTF code
+# such as \rtf1 or a\par is not a path.
+_CODE_PATH = re.compile(r"^(?:[A-Za-z]:(?:\\[\w.~-]+)+\\?|[\w.~-]+(?:/[\w.~-]+)+/?)$")
+
+
+def _words_in_code(code: str) -> list[tuple[int, int, bool]]:
+    """(start, end, is_name) of each word in a piece of code.
+
+    A URL or a path is one name. Each other word is an identifier: a name,
+    or English text if it is lower-case letters only.
+    """
+    taken: list[tuple[int, int]] = [m.span() for m in _CODE_URL.finditer(code)]
+    for m in _CODE_CHUNK.finditer(code):
+        chunk = m.group(0)
+        if _CODE_PATH.match(chunk):
+            if all(m.end() <= a or m.start() >= b for a, b in taken):
+                taken.append(m.span())
+    out = [(a, b, True) for a, b in taken]
+    for m in _IDENTIFIER.finditer(code):
+        if all(m.end() <= a or m.start() >= b for a, b in taken):
+            out.append((m.start(), m.end(), not _LOWERCASE_WORD.match(m.group(0))))
+    return sorted(out)
+
+
 _LINK = re.compile(r"!?\[([^\]\n]*)\]\(([^)\s]+)\)")
 
 
@@ -125,11 +152,10 @@ def prepare_markdown(text: str) -> tuple[str, list[int], list[tuple[int, int]]]:
                 continue
             # Code: each name is checked, and each is its own sentence, so the
             # sentence rules do not read a line of code as prose.
-            found = [m.span() for m in _IDENTIFIER.finditer(line)]
             chars = [" " if ch not in "\r\n" else ch for ch in line]
-            for a, b in found:
+            for a, b, is_name in _words_in_code(line):
                 chars[a:b] = line[a:b]
-                if not _LOWERCASE_WORD.match(line[a:b]):
+                if is_name:
                     names.append((here + a, here + b))
                 starts.append(here + a)
             out.append("".join(chars))
@@ -155,17 +181,13 @@ def prepare_markdown(text: str) -> tuple[str, list[int], list[tuple[int, int]]]:
                 # Code: each name in it is checked. The characters between the
                 # names (numbers, punctuation) become spaces, so the tokenizer
                 # does not join them to a name.
-                found = [(s + m.start(), s + m.end()) for m in _IDENTIFIER.finditer(content)]
+                found = [(s + a, s + b, n) for a, b, n in _words_in_code(content)]
                 chars = list(line)
                 for i in range(s, e):
-                    if not any(a <= i < b for a, b in found):
+                    if not any(a <= i < b for a, b, _ in found):
                         chars[i] = " "
                 line = "".join(chars)
-                names.extend(
-                    (here + a, here + b)
-                    for a, b in found
-                    if not _LOWERCASE_WORD.match(line[a:b])
-                )
+                names.extend((here + a, here + b) for a, b, n in found if n)
             elif " " not in content:
                 names.append((here + s, here + e))  # one name: a file, a path
             # Otherwise the span quotes text, and its words are checked as words.
