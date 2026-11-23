@@ -166,12 +166,24 @@ def test_number_or_symbols_in_a_code_span_is_not_a_name(span: str) -> None:
             if f.evidence.get("status") == "name_not_in_glossary"] == []
 
 
-def test_fenced_code_block_is_not_checked() -> None:
-    """rules/writing-standards.md: the standards do not apply to code."""
-    text = "Do the test.\n\n```\nutilize_everything --now\nfoo bar baz\n```\n"
-    result = analyze(text, text_type="procedure", markdown=True)
+def test_each_name_in_a_fenced_code_block_is_checked() -> None:
+    """A code block is not left out. Each name in it is checked against the
+    glossaries; the fence lines are markup."""
+    text = "Do the test.\n\n```csharp\nvar x = Foo.Bar(1);\n```\n"
     fence_start = text.index("```")
-    assert [f for f in result.findings if f.start >= fence_start] == []
+    findings = [f for f in analyze(text, text_type="procedure", markdown=True).findings
+                if f.start >= fence_start]
+    assert [text[f.start : f.end] for f in findings] == ["var", "x", "Foo", "Bar"]
+    assert all(f.evidence["status"] == "name_not_in_glossary" for f in findings)
+
+
+def test_listed_names_in_a_fenced_code_block_get_no_finding(tmp_path: Path) -> None:
+    text = "Do the test.\n\n```\nvar x = Foo.Bar(1);\n```\n"
+    fence_start = text.index("```")
+    glossary = _glossary(tmp_path, "var", "x", "Foo", "Bar")
+    findings = analyze(text, text_type="procedure", markdown=True,
+                       glossary_path=glossary).findings
+    assert [f for f in findings if f.start >= fence_start] == []
 
 
 def test_abbreviation_with_periods_is_still_a_word() -> None:
