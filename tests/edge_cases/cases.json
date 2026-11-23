@@ -170,14 +170,15 @@
       "id": "E13",
       "kind": "engine",
       "intent": "TN/TV usage must not POS-ERROR",
-      "text": "1. Switch the unit to ON.",
+      "text": "1. Set the switch to ON.",
       "text_type": "procedure",
       "expect": {
         "compliant": true,
         "forbid_rule_ids": [
           "STE-POS-MISMATCH"
         ]
-      }
+      },
+      "note": "Was '1. Switch the unit to ON.'; switch(v) is unapproved in STE (use 'set'), which POS-aware lookup now reports. Reworded to keep testing TN/TV usage without asserting the old false negative."
     },
     {
       "id": "E14",
@@ -448,13 +449,14 @@
       "id": "E34",
       "kind": "engine",
       "intent": "Seed technical verb (calibrate) is approved",
-      "text": "Calibrate the sensor before use.",
+      "text": "Calibrate the sensor before operation.",
       "text_type": "procedure",
       "expect": {
         "forbid_rule_ids": [
           "STE-VOCAB-UNAPPROVED"
         ]
-      }
+      },
+      "note": "Was '...before use.'; use(n) is unapproved in STE (use 'operation'), which POS-aware lookup now reports. Reworded to keep testing the seeded technical verb 'calibrate'."
     },
     {
       "id": "E35",

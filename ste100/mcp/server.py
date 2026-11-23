@@ -18,6 +18,11 @@ from ste100.core.serialize import format_output
 from ste100.core.spacy_ready import ensure_spacy_model
 from ste100.dictionary.engine import get_default_engine
 
+# Response size caps for ste_apply_safe_fixes (agent context is the scarce
+# resource; the diff is the useful half, so it gets the larger budget).
+_MAX_FIXED_CHARS = 400
+_MAX_DIFF_CHARS = 1200
+
 TransportName = Literal["stdio", "http", "sse", "streamable-http"]
 
 mcp = FastMCP(
@@ -89,12 +94,19 @@ def ste_apply_safe_fixes(text: str, glossary: str | None = None) -> dict[str, An
         for r in result["replacements_applied"]
     ]
     fixed = result["fixed"]
-    if len(fixed) > 400:
-        fixed = fixed[:400] + "…"
+    diff = result["diff"]
+    truncated = len(fixed) > _MAX_FIXED_CHARS or len(diff) > _MAX_DIFF_CHARS
+    if len(fixed) > _MAX_FIXED_CHARS:
+        fixed = fixed[:_MAX_FIXED_CHARS] + "…"
+    if len(diff) > _MAX_DIFF_CHARS:
+        diff = diff[:_MAX_DIFF_CHARS] + "…"
     return {
+        # ``original`` is the caller's own input; echoing it back doubles the
+        # payload for no benefit. ``diff`` is capped, not blanked.
         "original": "",
         "fixed": fixed,
-        "diff": "",
+        "diff": diff,
+        "truncated": truncated,
         "replacements_applied": slim_replacements,
     }
 
