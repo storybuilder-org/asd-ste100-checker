@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import re
+from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 
@@ -221,6 +222,8 @@ class DictionaryEngine:
         self.records: list[DictionaryRecord] = []
         self.glossary: Glossary | None = None
         self.preferred_terms: dict[str, str] = {}
+        # Glossary terms of more than one word, as lower-case word tuples.
+        self.multiword_terms: set[tuple[str, ...]] = set()
         self._index: dict[str, DictionaryRecord] = {}
         self._index_by_pos: dict[str, list[DictionaryRecord]] = {}
         self._loaded = False
@@ -514,7 +517,42 @@ class DictionaryEngine:
         for src, dest in glossary.preferred_terms.items():
             self.preferred_terms[_normalize_key(src)] = dest
 
+        for entry in (*glossary.technical_nouns, *glossary.technical_verbs):
+            self._add_multiword_term(entry)
+
         return glossary
+
+    def _add_multiword_term(self, entry: GlossaryEntry) -> None:
+        """Record a term of more than one word, with its inflected forms."""
+        words = tuple(_normalize_key(entry.word).split())
+        if len(words) < 2:
+            return
+        self.multiword_terms.add(words)
+        last_forms = {_normalize_key(i).split()[-1] for i in entry.inflections if i.strip()}
+        plural = _simple_plural(words[-1])
+        if plural:
+            last_forms.add(plural)
+        for form in last_forms:
+            self.multiword_terms.add((*words[:-1], form))
+
+    def multiword_term_tokens(self, tokens: list[str]) -> set[int]:
+        """Indexes of the tokens that are part of a glossary term of more than
+        one word. ``tokens`` is the text of each token; the longest term wins."""
+        if not self.multiword_terms:
+            return set()
+        lengths = sorted({len(t) for t in self.multiword_terms}, reverse=True)
+        lowered = [t.lower() for t in tokens]
+        covered: set[int] = set()
+        i = 0
+        while i < len(lowered):
+            for n in lengths:
+                if tuple(lowered[i : i + n]) in self.multiword_terms:
+                    covered.update(range(i, i + n))
+                    i += n
+                    break
+            else:
+                i += 1
+        return covered
 
     def _parse_glossary(self, raw: dict[str, Any]) -> Glossary:
         """Parse glossary YAML; accept string lists or GlossaryEntry dicts."""
@@ -659,26 +697,37 @@ def get_default_engine() -> DictionaryEngine:
     return _default_engine
 
 
+def _glossary_paths(glossary_path: str | Sequence[str] | None) -> list[str]:
+    if glossary_path is None:
+        return []
+    if isinstance(glossary_path, (str, Path)):
+        return [str(glossary_path)]
+    return [str(p) for p in glossary_path]
+
+
 def resolve_engine(
     dictionary: DictionaryEngine | None = None,
-    glossary_path: str | None = None,
+    glossary_path: str | Sequence[str] | None = None,
 ) -> DictionaryEngine:
     """Resolve the engine for a check/fix entry point.
 
-    If ``dictionary`` is given, use it (merging the glossary if provided).
-    Otherwise reuse the process-wide singleton when no glossary is needed, or
-    build a fresh engine only when a glossary must be merged in (so the shared
-    singleton stays glossary-free). Avoids a full dictionary reload on every
-    glossary-free call.
+    ``glossary_path`` is one glossary file or a list of them; each is merged
+    in order. If ``dictionary`` is given, use it (merging the glossaries if
+    provided). Otherwise reuse the process-wide singleton when no glossary is
+    needed, or build a fresh engine only when a glossary must be merged in (so
+    the shared singleton stays glossary-free). Avoids a full dictionary reload
+    on every glossary-free call.
     """
+    paths = _glossary_paths(glossary_path)
     if dictionary is not None:
-        if glossary_path is not None:
-            dictionary.merge_glossary(glossary_path)
+        for path in paths:
+            dictionary.merge_glossary(path)
         return dictionary
-    if glossary_path is None:
+    if not paths:
         return get_default_engine()
     engine = DictionaryEngine().load()
-    engine.merge_glossary(glossary_path)
+    for path in paths:
+        engine.merge_glossary(path)
     return engine
 
 

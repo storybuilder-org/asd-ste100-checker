@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import re
+from collections.abc import Sequence
 from typing import Never
 
 import spacy
@@ -159,7 +160,7 @@ def _parse_with_sentence_starts(nlp: Language, text: str, starts: list[int]) -> 
 def analyze(
     text: str,
     text_type: TextType | str = TextType.AUTO,
-    glossary_path: str | None = None,
+    glossary_path: str | Sequence[str] | None = None,
     *,
     dictionary: DictionaryEngine | None = None,
     markdown: bool = False,
@@ -180,7 +181,12 @@ def analyze(
     engine = resolve_engine(dictionary, glossary_path)
 
     resolved = _resolve_text_type(requested, doc, text)
-    context = AnalysisContext(text=text, text_type=resolved, dictionary=engine)
+    context = AnalysisContext(
+        text=text,
+        text_type=resolved,
+        dictionary=engine,
+        term_tokens=frozenset(engine.multiword_term_tokens([t.text for t in doc])),
+    )
 
     findings: list[Finding] = []
     for check in get_all_checks():

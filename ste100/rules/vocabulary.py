@@ -46,6 +46,8 @@ def check_vocabulary(doc: Doc, context: AnalysisContext) -> list[Finding]:
     for token in doc:
         if token.is_space or token.is_punct:
             continue
+        if token.i in context.term_tokens:
+            continue
         text = token.text
         if is_non_vocabulary_token(text):
             continue
