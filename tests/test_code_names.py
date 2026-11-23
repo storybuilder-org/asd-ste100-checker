@@ -88,6 +88,14 @@ def test_code_span_is_one_name(tmp_path: Path) -> None:
     assert text[hits[0].start : hits[0].end] == "storybuilder-miscellaneous/devdocs"
 
 
+def test_two_code_spans_joined_by_a_slash_are_two_names() -> None:
+    """issue-1675-design.md: `win:`/`skia:`."""
+    text = "Use the `win:`/`skia:` prefixes.\n"
+    names = [text[f.start : f.end] for f in _vocab(text, markdown=True)
+             if f.evidence.get("status") == "name_not_in_glossary"]
+    assert names == ["win:", "skia:"]
+
+
 def test_plain_word_in_a_code_span_is_a_name() -> None:
     """`check` in backticks is the name of something, not the verb."""
     text = "Set the value to `check` now.\n"
