@@ -58,6 +58,28 @@ def test_listed_name_gets_no_finding(tmp_path: Path, name: str) -> None:
     assert hits == []
 
 
+@pytest.mark.parametrize(
+    ("listed", "written"),
+    [
+        ("rules/writing-standards.md", "writing-standards.md"),
+        ("writing-standards.md", "rules/writing-standards.md"),
+    ],
+)
+def test_path_and_its_file_name_are_one_entry(tmp_path: Path, listed: str, written: str) -> None:
+    """A file is named with or without its folder; one entry covers both."""
+    text = f"Read {written} first."
+    hits = [f for f in _vocab(text, glossary_path=_glossary(tmp_path, listed))
+            if f.evidence.get("status") == "name_not_in_glossary"]
+    assert hits == []
+
+
+def test_a_different_file_name_is_not_covered(tmp_path: Path) -> None:
+    text = "Read rules/language.md first."
+    hits = [f for f in _vocab(text, glossary_path=_glossary(tmp_path, "rules/writing-standards.md"))
+            if f.evidence.get("status") == "name_not_in_glossary"]
+    assert len(hits) == 1
+
+
 def test_code_span_is_one_name(tmp_path: Path) -> None:
     text = "The design is in `storybuilder-miscellaneous/devdocs` now.\n"
     hits = [f for f in _vocab(text, markdown=True) if "`" in text[: f.start]
