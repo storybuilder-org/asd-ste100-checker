@@ -126,12 +126,22 @@ def test_plain_word_in_a_code_span_is_a_name() -> None:
 
 
 def test_quoted_text_in_a_code_span_is_checked_word_by_word() -> None:
-    """A code span with a space quotes text; it is not a name."""
-    text = "Add the line `Utilize the tool now.` to the file.\n"
+    """A code span with a space quotes literal text, such as a value or a
+    message from a program, that the design cannot write again. Each word is
+    checked: an approved lower-case word passes, any other word is a name that
+    a glossary must list."""
+    text = "An answer is `not fixed` or `Utilize the tool now.` here.\n"
     findings = _vocab(text, markdown=True)
-    assert "Utilize" in {f.evidence.get("word") for f in findings}
-    assert not [f for f in findings if f.evidence.get("status") == "name_not_in_glossary"
-                and " " in text[f.start : f.end]]
+    names = [text[f.start : f.end] for f in findings
+             if f.evidence.get("status") == "name_not_in_glossary"]
+    assert names == ["fixed", "Utilize"]
+
+
+def test_a_name_is_not_a_verb_form() -> None:
+    """issue-8-design.md: "A finding is `blocking` if ..." """
+    text = "A finding is `blocking` if the next step will be incorrect.\n"
+    result = analyze(text, text_type="description", markdown=True)
+    assert [f for f in result.findings if f.rule_id == "STE-VERB-FORM"] == []
 
 
 def _span_findings(text: str, **kwargs):
