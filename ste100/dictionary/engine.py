@@ -173,6 +173,11 @@ def _normalize_key(word: str) -> str:
     return word.strip().lower()
 
 
+def _last_part(path: str) -> str:
+    """The part of a path after its last slash."""
+    return path.rstrip("/").rsplit("/", 1)[-1]
+
+
 def _morphology_keys(word: str) -> list[str]:
     """Surface form plus simple lemma-ish fallbacks (utilizes → utilize)."""
     key = _normalize_key(word)
@@ -239,6 +244,8 @@ class DictionaryEngine:
         self.multiword_terms: set[tuple[str, ...]] = set()
         # Every word a glossary lists, lower case. A name must be one of them.
         self.glossary_words: set[str] = set()
+        # The last part of each glossary path ("writing-standards.md").
+        self.glossary_file_names: set[str] = set()
         self._index: dict[str, DictionaryRecord] = {}
         self._index_by_pos: dict[str, list[DictionaryRecord]] = {}
         self._loaded = False
@@ -538,13 +545,27 @@ class DictionaryEngine:
 
         for entry in (*glossary.technical_nouns, *glossary.technical_verbs):
             self._add_multiword_term(entry)
-            self.glossary_words.add(_normalize_key(entry.word))
+            key = _normalize_key(entry.word)
+            self.glossary_words.add(key)
+            if "/" in key:
+                self.glossary_file_names.add(_last_part(key))
 
         return glossary
 
     def is_listed_name(self, name: str) -> bool:
-        """True if a glossary lists the name."""
-        return _normalize_key(name) in self.glossary_words
+        """True if a glossary lists the name.
+
+        A file is named with or without its folder, so a path and its last
+        part are one entry: "rules/writing-standards.md" in a glossary covers
+        "writing-standards.md", and the reverse.
+        """
+        key = _normalize_key(name)
+        if key in self.glossary_words:
+            return True
+        last = _last_part(key)
+        return last in self.glossary_file_names or (
+            "/" in key and last in self.glossary_words
+        )
 
     def _add_multiword_term(self, entry: GlossaryEntry) -> None:
         """Record a term of more than one word, with its inflected forms."""
