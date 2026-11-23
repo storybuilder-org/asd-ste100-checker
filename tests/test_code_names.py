@@ -105,6 +105,52 @@ def test_quoted_text_in_a_code_span_is_checked_word_by_word() -> None:
                 and " " in text[f.start : f.end]]
 
 
+def _span_findings(text: str, **kwargs):
+    start, end = text.index("`"), text.rindex("`")
+    findings = analyze(text, text_type="description", markdown=True, **kwargs).findings
+    return [f for f in findings if start <= f.start < end]
+
+
+@pytest.mark.parametrize(
+    ("code", "names"),
+    [
+        # issue-1675-design.md, line 221
+        ("Document.GetRange(0, 1).CharacterFormat.ForegroundColor",
+         ["Document", "GetRange", "CharacterFormat", "ForegroundColor"]),
+        ("Close()", ["Close"]),
+        ("HashSet<Guid>", ["HashSet", "Guid"]),
+        ("[TestCleanup]", ["TestCleanup"]),
+    ],
+)
+def test_each_name_in_code_is_checked(code: str, names: list[str]) -> None:
+    """Code is not left out. Each name in it is checked against the glossaries;
+    numbers and punctuation are not names."""
+    text = f"Record the value that `{code}` returns.\n"
+    found = [text[f.start : f.end] for f in _span_findings(text)]
+    assert found == names
+    assert all(f.evidence["status"] == "name_not_in_glossary" for f in _span_findings(text))
+
+
+def test_listed_names_in_code_get_no_finding(tmp_path: Path) -> None:
+    text = "Record the value that `Document.GetRange(0, 1).CharacterFormat` returns.\n"
+    glossary = _glossary(tmp_path, "Document", "GetRange", "CharacterFormat")
+    assert _span_findings(text, glossary_path=glossary) == []
+
+
+def test_rtf_in_a_table_cell_is_checked_name_by_name() -> None:
+    """issue-1675-design.md, line 241."""
+    text = (
+        "| Test | Input |\n"
+        "|---|---|\n"
+        r"| The test | `{\rtf1{\colortbl ;\red0\green0\blue0;}\cf1 a\par}` |" "\n"
+    )
+    start = text.index("`")
+    findings = [f for f in analyze(text, text_type="description", markdown=True).findings
+                if f.start >= start]
+    found = [text[f.start : f.end] for f in findings]
+    assert found == ["rtf1", "colortbl", "red0", "green0", "blue0", "cf1", "a", "par"]
+
+
 def test_link_url_is_one_name_without_the_link_markup() -> None:
     url = "https://github.com/storybuilder-org/process/issues/8"
     text = f"Read [the issue]({url}) first.\n"
