@@ -454,7 +454,7 @@ def check_pos_mismatch(doc: Doc, context: AnalysisContext) -> list[Finding]:
             continue
         fragment = is_fragment(sent)
         for token in sent:
-            if token.i in seen:
+            if token.i in seen or token.i in context.term_tokens or token.i in context.name_tokens:
                 continue
             if token.is_space or token.is_punct or token.tag_ == "LS":
                 continue

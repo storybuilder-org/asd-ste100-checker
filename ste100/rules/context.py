@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Callable
 
 from spacy.tokens import Doc
@@ -20,3 +20,7 @@ class AnalysisContext:
     text: str
     text_type: TextType
     dictionary: DictionaryEngine
+    # Token indexes inside a glossary term of more than one word.
+    term_tokens: frozenset[int] = field(default_factory=frozenset)
+    # Token indexes of file names, code names and URLs.
+    name_tokens: frozenset[int] = field(default_factory=frozenset)

@@ -62,8 +62,8 @@ def main() -> None:
 @click.option(
     "--glossary",
     type=click.Path(path_type=Path, exists=True, dir_okay=False),
-    default=None,
-    help="Project glossary YAML path.",
+    multiple=True,
+    help="Project glossary YAML path. Repeat to merge several files, in order.",
 )
 @click.option(
     "--spacy-model",
@@ -74,13 +74,19 @@ def main() -> None:
         "MCP server uses the env var only."
     ),
 )
+@click.option(
+    "--markdown",
+    is_flag=True,
+    help="Read the input as Markdown (always on for a FILE that ends in .md).",
+)
 @click.option("--quiet", is_flag=True, help="Suppress stdout; still set exit code.")
 def check_cmd(
     file: Path | None,
     text_type: str,
     output: str,
-    glossary: Path | None,
+    glossary: tuple[Path, ...],
     spacy_model: str | None,
+    markdown: bool,
     quiet: bool,
 ) -> None:
     """Check FILE (or stdin) for STE Tier-1/Tier-2/Tier-3 issues."""
@@ -97,7 +103,8 @@ def check_cmd(
         result = analyze(
             text,
             text_type=text_type,
-            glossary_path=str(glossary) if glossary else None,
+            glossary_path=[str(g) for g in glossary] or None,
+            markdown=markdown or (file is not None and file.suffix.lower() == ".md"),
         )
     except Exception as exc:  # noqa: BLE001 — CLI boundary
         click.echo(f"error: analysis failed: {exc}", err=True)
@@ -159,8 +166,8 @@ def explain_cmd(rule_id: str) -> None:
 @click.option(
     "--glossary",
     type=click.Path(path_type=Path, exists=True, dir_okay=False),
-    default=None,
-    help="Project glossary YAML path.",
+    multiple=True,
+    help="Project glossary YAML path. Repeat to merge several files, in order.",
 )
 @click.option(
     "--base",
@@ -185,7 +192,7 @@ def check_changed_cmd(
     globs: tuple[str, ...],
     text_type: str,
     output: str,
-    glossary: Path | None,
+    glossary: tuple[Path, ...],
     base: str | None,
     spacy_model: str | None,
     quiet: bool,
@@ -195,7 +202,7 @@ def check_changed_cmd(
         set_spacy_model(spacy_model)
 
     glob_list = list(globs) if globs else None
-    glossary_path = str(glossary) if glossary else None
+    glossary_path = [str(g) for g in glossary] or None
     fmt = output.lower()
     try:
         payload = run_check_changed(

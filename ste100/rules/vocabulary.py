@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from typing import Never
 
 from spacy.tokens import Doc
@@ -38,6 +39,16 @@ def _suggestions_for(
     return out
 
 
+_COMMIT_ID = re.compile(r"^[0-9a-f]{7,40}$")
+
+
+def _is_number_or_id(text: str) -> bool:
+    """True for a number, symbols only, or a git commit id (3377c2e)."""
+    if not any(ch.isalpha() for ch in text):
+        return True
+    return bool(_COMMIT_ID.match(text)) and any(ch.isdigit() for ch in text)
+
+
 def check_vocabulary(doc: Doc, context: AnalysisContext) -> list[Finding]:
     """Flag unapproved/forbidden alphabetic tokens; respect glossary overrides."""
     findings: list[Finding] = []
@@ -46,7 +57,33 @@ def check_vocabulary(doc: Doc, context: AnalysisContext) -> list[Finding]:
     for token in doc:
         if token.is_space or token.is_punct:
             continue
+        if token.i in context.term_tokens:
+            continue
         text = token.text
+        if token.i in context.name_tokens:
+            # A name is not an English word: a glossary must list it. A
+            # number, symbols or a commit id are not a name.
+            if not _is_number_or_id(text) and not context.dictionary.is_listed_name(text):
+                findings.append(
+                    Finding(
+                        rule_id=RULE_UNAPPROVED,
+                        severity=Severity.ERROR,
+                        message=(
+                            f"Name '{text}' is not in a glossary. Add it to the "
+                            "glossary of names, or write it differently."
+                        ),
+                        start=token.idx,
+                        end=token.idx + len(text),
+                        sentence=sentence_index_for_token(token),
+                        evidence={
+                            "rule_ref": "Rule 1.5",
+                            "word": text,
+                            "status": "name_not_in_glossary",
+                        },
+                        suggestions=[],
+                    )
+                )
+            continue
         if is_non_vocabulary_token(text):
             continue
         if not any(ch.isalpha() for ch in text):

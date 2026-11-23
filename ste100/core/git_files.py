@@ -128,7 +128,7 @@ def filter_by_globs(
 def _collect_changed_analyses(
     globs: list[str] | None,
     text_type: str,
-    glossary: str | None,
+    glossary: str | list[str] | None,
     *,
     cwd: Path | None,
     include_untracked: bool,
@@ -149,7 +149,12 @@ def _collect_changed_analyses(
     analyses: list[tuple[str, AnalysisResult]] = []
     for path in matched:
         text = path.read_text(encoding="utf-8")
-        result = analyze(text, text_type=text_type, glossary_path=glossary)
+        result = analyze(
+            text,
+            text_type=text_type,
+            glossary_path=glossary,
+            markdown=path.suffix.lower() == ".md",
+        )
         analyses.append((str(path.relative_to(root)), result))
     return root, patterns, analyses, merge_base
 
@@ -157,7 +162,7 @@ def _collect_changed_analyses(
 def check_changed_files(
     globs: list[str] | None = None,
     text_type: str = "auto",
-    glossary: str | None = None,
+    glossary: str | list[str] | None = None,
     *,
     cwd: Path | None = None,
     include_untracked: bool = True,
@@ -207,7 +212,7 @@ def check_changed_files(
 def check_changed_files_sarif(
     globs: list[str] | None = None,
     text_type: str = "auto",
-    glossary: str | None = None,
+    glossary: str | list[str] | None = None,
     *,
     cwd: Path | None = None,
     include_untracked: bool = True,
@@ -267,7 +272,7 @@ def run_check_changed(
     output: str = "json",
     globs: list[str] | None = None,
     text_type: str = "auto",
-    glossary: str | None = None,
+    glossary: str | list[str] | None = None,
     *,
     cwd: Path | None = None,
     include_untracked: bool = True,
