@@ -149,7 +149,12 @@ def _collect_changed_analyses(
     analyses: list[tuple[str, AnalysisResult]] = []
     for path in matched:
         text = path.read_text(encoding="utf-8")
-        result = analyze(text, text_type=text_type, glossary_path=glossary)
+        result = analyze(
+            text,
+            text_type=text_type,
+            glossary_path=glossary,
+            markdown=path.suffix.lower() == ".md",
+        )
         analyses.append((str(path.relative_to(root)), result))
     return root, patterns, analyses, merge_base
 

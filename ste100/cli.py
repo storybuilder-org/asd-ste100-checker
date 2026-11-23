@@ -74,6 +74,11 @@ def main() -> None:
         "MCP server uses the env var only."
     ),
 )
+@click.option(
+    "--markdown",
+    is_flag=True,
+    help="Read the input as Markdown (always on for a FILE that ends in .md).",
+)
 @click.option("--quiet", is_flag=True, help="Suppress stdout; still set exit code.")
 def check_cmd(
     file: Path | None,
@@ -81,6 +86,7 @@ def check_cmd(
     output: str,
     glossary: Path | None,
     spacy_model: str | None,
+    markdown: bool,
     quiet: bool,
 ) -> None:
     """Check FILE (or stdin) for STE Tier-1/Tier-2/Tier-3 issues."""
@@ -98,6 +104,7 @@ def check_cmd(
             text,
             text_type=text_type,
             glossary_path=str(glossary) if glossary else None,
+            markdown=markdown or (file is not None and file.suffix.lower() == ".md"),
         )
     except Exception as exc:  # noqa: BLE001 — CLI boundary
         click.echo(f"error: analysis failed: {exc}", err=True)

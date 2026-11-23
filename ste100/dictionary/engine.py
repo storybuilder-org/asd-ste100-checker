@@ -131,7 +131,16 @@ def is_non_vocabulary_token(word: str) -> bool:
     # Isolated punctuation / symbols
     if not any(ch.isalpha() for ch in stripped):
         return True
+    # Code names and file names (lookup_sense, DictionaryEngine, process.md)
+    if _CODE_NAME_RE.search(stripped) and not stripped.endswith("."):
+        return True
     return False
+
+
+# An underscore, a lower-case letter followed by a capital (camelCase,
+# PascalCase), or a period or slash between two word characters. A dotted
+# abbreviation such as "e.g." ends in a period and is not matched.
+_CODE_NAME_RE = re.compile(r"_|[a-z][A-Z]|\w[./]\w")
 
 
 def _simple_plural(word: str) -> str | None:

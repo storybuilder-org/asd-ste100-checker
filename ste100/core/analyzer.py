@@ -10,6 +10,7 @@ import spacy
 from spacy.language import Language
 from spacy.tokens import Doc
 
+from ste100.core.markdown import mask_markdown
 from ste100.core.schema import AnalysisResult, Finding, Severity, TextType
 from ste100.dictionary.engine import DictionaryEngine, resolve_engine
 from ste100.rules.context import AnalysisContext
@@ -146,10 +147,17 @@ def analyze(
     glossary_path: str | None = None,
     *,
     dictionary: DictionaryEngine | None = None,
+    markdown: bool = False,
 ) -> AnalysisResult:
-    """Run all registered Tier-1/Tier-2/Tier-3 rules and return an AnalysisResult."""
+    """Run all registered Tier-1/Tier-2/Tier-3 rules and return an AnalysisResult.
+
+    With ``markdown``, code is hidden from the rules first (see
+    :mod:`ste100.core.markdown`). Finding offsets still refer to ``text``.
+    """
     requested = _parse_text_type(text_type)
     nlp = get_nlp()
+    if markdown:
+        text = mask_markdown(text)
     doc = nlp(text)
 
     engine = resolve_engine(dictionary, glossary_path)
