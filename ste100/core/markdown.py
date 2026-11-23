@@ -106,6 +106,24 @@ def prepare_markdown(text: str) -> tuple[str, list[int]]:
     return result, starts
 
 
+_PATH_NAME = re.compile(r"(?<![\w./-])[\w.-]*\w/[\w./-]*\w")
+
+
+def mask_path_names(text: str) -> str:
+    """Replace each path such as ``storybuilder-org/process`` with one
+    placeholder word of the same length. The tokenizer splits a word at a
+    hyphen, so a path is hidden before it runs. A pair such as "and/or" has
+    no hyphen, no period and one slash, and stays prose."""
+
+    def _fill(m: re.Match[str]) -> str:
+        found = m.group(0)
+        if "-" in found or "." in found or found.count("/") >= 2:
+            return _SPAN_FILL * len(found)
+        return found
+
+    return _PATH_NAME.sub(_fill, text)
+
+
 def mask_markdown(text: str) -> str:
     """Return ``text`` with code hidden. See :func:`prepare_markdown`."""
     return prepare_markdown(text)[0]

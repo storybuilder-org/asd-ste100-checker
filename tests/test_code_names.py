@@ -50,6 +50,14 @@ def test_bare_hyphenated_path_is_not_split(text: str, pieces: set[str]) -> None:
     assert not _vocab_words(text) & pieces
 
 
+def test_word_pair_with_a_slash_is_still_prose() -> None:
+    from ste100.core.markdown import mask_path_names
+
+    assert mask_path_names("Set the switch on/off and/or wait.") == (
+        "Set the switch on/off and/or wait."
+    )
+
+
 def test_abbreviation_with_periods_is_still_reported() -> None:
     """'e.g.' is not a code name. A dotted name does not end in a period."""
     assert "e.g." in _vocab_words("Use a tool, e.g. a wrench.")

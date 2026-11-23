@@ -11,7 +11,7 @@ import spacy
 from spacy.language import Language
 from spacy.tokens import Doc
 
-from ste100.core.markdown import prepare_markdown
+from ste100.core.markdown import mask_path_names, prepare_markdown
 from ste100.core.schema import AnalysisResult, Finding, Severity, TextType
 from ste100.dictionary.engine import DictionaryEngine, resolve_engine
 from ste100.rules.context import AnalysisContext
@@ -174,8 +174,10 @@ def analyze(
     nlp = get_nlp()
     if markdown:
         text, starts = prepare_markdown(text)
+        text = mask_path_names(text)
         doc = _parse_with_sentence_starts(nlp, text, starts)
     else:
+        text = mask_path_names(text)
         doc = nlp(text)
 
     engine = resolve_engine(dictionary, glossary_path)
