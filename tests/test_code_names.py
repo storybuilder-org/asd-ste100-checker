@@ -257,10 +257,13 @@ def test_each_name_in_a_fenced_code_block_is_checked() -> None:
 def test_url_or_path_in_code_is_one_name(code: str, name: str) -> None:
     """A URL or a path inside code is one name, not cut into its words."""
     for text in (f"Run this.\n\n```\n{code}\n```\n", f"Run `{code}` now.\n"):
-        names = [text[f.start : f.end] for f in _vocab(text, markdown=True)
+        start = text.index(name)
+        end = start + len(name)
+        spans = [(f.start, f.end) for f in _vocab(text, markdown=True)
                  if f.evidence.get("status") == "name_not_in_glossary"]
-        assert name in names, text
-        assert not any(n != name and n in name for n in names), (text, names)
+        assert (start, end) in spans, text
+        # No other finding lies inside the URL or the path.
+        assert [s for s in spans if start <= s[0] < end and s != (start, end)] == [], text
 
 
 def test_placeholder_in_a_path_is_part_of_the_path() -> None:

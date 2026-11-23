@@ -60,9 +60,10 @@ def _blank_backticks(line: str) -> str:
 # Characters that mark the content of a code span as code, not a name or text.
 _CODE_CHARS = frozenset("(){}[]<>=;\\\"',?!&*+|")
 _IDENTIFIER = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
-# In code, a word of lower-case letters only is English text (a message, a
-# comment, a keyword) and is checked against the dictionary as a word. Any
-# other word in code is a name and is checked against the glossaries.
+# In code, a word of lower-case letters only is a code word: English text (a
+# message, a comment) or a command or keyword. If the dictionary approves it in
+# any part of speech, it gets no finding; if not, it is a name and a glossary
+# must list it. Any other word in code is a name.
 _LOWERCASE_WORD = re.compile(r"^[a-z]+$")
 # A file path with no space: D:\dev\src\CLAUDE.md, ~/.claude/CLAUDE.md.
 _PATH_CONTENT = re.compile(r"^(?:[A-Za-z]:)?[\w.~-]*(?:[\\/][\w.~-]+)+[\\/]?$")
@@ -128,7 +129,9 @@ def _table_pipes(line: str, spans: list[tuple[int, int]]) -> list[int]:
     return pipes
 
 
-def prepare_markdown(text: str) -> tuple[str, list[int], list[tuple[int, int]]]:
+def prepare_markdown(
+    text: str,
+) -> tuple[str, list[int], list[tuple[int, int]], list[tuple[int, int]]]:
     """Return the prepared text, the sentence starts, and the code-span ranges.
 
     - In a fenced code block and in a code span that holds code, each name is
@@ -142,6 +145,7 @@ def prepare_markdown(text: str) -> tuple[str, list[int], list[tuple[int, int]]]:
     out: list[str] = []
     starts: list[int] = []
     names: list[tuple[int, int]] = []
+    code_words: list[tuple[int, int]] = []
     fence: str | None = None
     new_block = True
     offset = 0
@@ -160,8 +164,7 @@ def prepare_markdown(text: str) -> tuple[str, list[int], list[tuple[int, int]]]:
             chars = [" " if ch not in "\r\n" else ch for ch in line]
             for a, b, is_name in _words_in_code(line):
                 chars[a:b] = line[a:b]
-                if is_name:
-                    names.append((here + a, here + b))
+                (names if is_name else code_words).append((here + a, here + b))
                 starts.append(here + a)
             out.append("".join(chars))
             continue
@@ -193,6 +196,7 @@ def prepare_markdown(text: str) -> tuple[str, list[int], list[tuple[int, int]]]:
                         chars[i] = " "
                 line = "".join(chars)
                 names.extend((here + a, here + b) for a, b, n in found if n)
+                code_words.extend((here + a, here + b) for a, b, n in found if not n)
             elif " " not in content:
                 names.append((here + s, here + e))  # one name: a file, a path
             # Otherwise the span quotes text, and its words are checked as words.
@@ -228,4 +232,4 @@ def prepare_markdown(text: str) -> tuple[str, list[int], list[tuple[int, int]]]:
 
     result = "".join(out)
     assert len(result) == len(text)
-    return result, starts, names
+    return result, starts, names, code_words

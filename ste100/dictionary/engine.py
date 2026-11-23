@@ -430,14 +430,22 @@ class DictionaryEngine:
         wanted = (pos,) if isinstance(pos, str) else tuple(pos)
         if not wanted:
             return self.lookup(word), True
-        for candidate in wanted:
-            matches = [r for r in records if (r.part_of_speech or "").lower() == candidate]
+        by_pos = [
+            [r for r in records if (r.part_of_speech or "").lower() == candidate]
+            for candidate in wanted
+        ]
+        # An approved record wins over an unapproved one among all the parts
+        # of speech that the tag allows: a glossary entry overrides the
+        # dictionary's unapproved sense ("request" as a technical noun), and a
+        # tag that allows more than one part of speech ("round" tagged as an
+        # adjective also allows a noun) takes the approved one.
+        for matches in by_pos:
+            approved = [r for r in matches if r.status in _APPROVED_STATUSES]
+            if approved:
+                return approved[0], True
+        for matches in by_pos:
             if matches:
-                # A glossary or seed entry of the same part of speech overrides
-                # the dictionary's unapproved sense ("request" as a technical
-                # noun), so an approved match wins.
-                approved = [r for r in matches if r.status in _APPROVED_STATUSES]
-                return (approved or matches)[0], True
+                return matches[0], True
         return None, True
 
     def has_approved_sense(self, word: str) -> bool:

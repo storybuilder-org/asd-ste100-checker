@@ -60,7 +60,11 @@ def check_vocabulary(doc: Doc, context: AnalysisContext) -> list[Finding]:
         if token.i in context.term_tokens:
             continue
         text = token.text
-        if token.i in context.name_tokens:
+        if token.i in context.code_word_tokens and context.dictionary.has_approved_sense(text):
+            # A lower-case word in code that the dictionary approves in some
+            # part of speech. Inside code, the part of speech is not tested.
+            continue
+        if token.i in context.name_tokens or token.i in context.code_word_tokens:
             # A name is not an English word: a glossary must list it. A
             # number, symbols or a commit id are not a name.
             if not _is_number_or_id(text) and not context.dictionary.is_listed_name(text):
