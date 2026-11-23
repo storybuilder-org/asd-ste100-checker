@@ -88,6 +88,15 @@ def test_code_span_is_one_name(tmp_path: Path) -> None:
     assert text[hits[0].start : hits[0].end] == "storybuilder-miscellaneous/devdocs"
 
 
+@pytest.mark.parametrize("path", [r"D:\dev\src\CLAUDE.md", "~/.claude/CLAUDE.md"])
+def test_path_in_a_code_span_is_one_name(path: str) -> None:
+    """issue-10-design.md, item 9."""
+    text = f"The file `{path}` stays on the computer.\n"
+    names = [text[f.start : f.end] for f in _vocab(text, markdown=True)
+             if f.evidence.get("status") == "name_not_in_glossary"]
+    assert names == [path]
+
+
 def test_two_code_spans_joined_by_a_slash_are_two_names() -> None:
     """issue-1675-design.md: `win:`/`skia:`."""
     text = "Use the `win:`/`skia:` prefixes.\n"
