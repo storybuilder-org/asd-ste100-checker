@@ -1088,6 +1088,19 @@
       "notes": null
     },
     {
+      "word": "adjustable",
+      "part_of_speech": "adjective",
+      "status": "approved",
+      "approved_meaning": null,
+      "inflections": [],
+      "alternatives": [],
+      "category": null,
+      "rule_ref": "Rule 1.1",
+      "examples_ste": [],
+      "examples_non_ste": [],
+      "notes": "Lost in the extraction from the PDF. Added from osolmaz/ste100 dictionary.json and checked against ASD-STE100 Issue 9, page 156."
+    },
+    {
       "word": "adjustment",
       "part_of_speech": "noun",
       "status": "approved",
@@ -2345,6 +2358,19 @@
         "A warning flag appears in the window. The lower seal appears when you pull the lower bearing down. If the engine appears to be too hot, turn the switch to off. If it appears that the temperature values are incorrect, decrease the power."
       ],
       "notes": null
+    },
+    {
+      "word": "applicable",
+      "part_of_speech": "adjective",
+      "status": "approved",
+      "approved_meaning": null,
+      "inflections": [],
+      "alternatives": [],
+      "category": null,
+      "rule_ref": "Rule 1.1",
+      "examples_ste": [],
+      "examples_non_ste": [],
+      "notes": "Lost in the extraction from the PDF. Added from osolmaz/ste100 dictionary.json and checked against ASD-STE100 Issue 9, page 165."
     },
     {
       "word": "application",
@@ -6017,6 +6043,19 @@
       "notes": null
     },
     {
+      "word": "clockwise",
+      "part_of_speech": "adverb",
+      "status": "approved",
+      "approved_meaning": null,
+      "inflections": [],
+      "alternatives": [],
+      "category": null,
+      "rule_ref": "Rule 1.1",
+      "examples_ste": [],
+      "examples_non_ste": [],
+      "notes": "Lost in the extraction from the PDF. Added from osolmaz/ste100 dictionary.json and checked against ASD-STE100 Issue 9, page 191."
+    },
+    {
       "word": "clogged",
       "part_of_speech": "adjective",
       "status": "approved",
@@ -6608,6 +6647,19 @@
       "notes": null
     },
     {
+      "word": "compatible",
+      "part_of_speech": "adjective",
+      "status": "approved",
+      "approved_meaning": null,
+      "inflections": [],
+      "alternatives": [],
+      "category": null,
+      "rule_ref": "Rule 1.1",
+      "examples_ste": [],
+      "examples_non_ste": [],
+      "notes": "Lost in the extraction from the PDF. Added from osolmaz/ste100 dictionary.json and checked against ASD-STE100 Issue 9, page 195."
+    },
+    {
       "word": "compile",
       "part_of_speech": "verb",
       "status": "unapproved",
@@ -6902,6 +6954,19 @@
       ],
       "examples_non_ste": [],
       "notes": null
+    },
+    {
+      "word": "concentric",
+      "part_of_speech": "adjective",
+      "status": "approved",
+      "approved_meaning": null,
+      "inflections": [],
+      "alternatives": [],
+      "category": null,
+      "rule_ref": "Rule 1.1",
+      "examples_ste": [],
+      "examples_non_ste": [],
+      "notes": "Lost in the extraction from the PDF. Added from osolmaz/ste100 dictionary.json and checked against ASD-STE100 Issue 9, page 197."
     },
     {
       "word": "concern",
@@ -7439,6 +7504,21 @@
       "notes": null
     },
     {
+      "word": "contaminated",
+      "part_of_speech": "adjective",
+      "status": "unapproved",
+      "approved_meaning": null,
+      "inflections": [],
+      "alternatives": [
+        "dirty"
+      ],
+      "category": null,
+      "rule_ref": "Rule 1.1",
+      "examples_ste": [],
+      "examples_non_ste": [],
+      "notes": "Lost in the extraction from the PDF. Added from osolmaz/ste100 dictionary.json and checked against ASD-STE100 Issue 9, page 201."
+    },
+    {
       "word": "contamination",
       "part_of_speech": "noun",
       "status": "approved",
@@ -7504,6 +7584,19 @@
       ],
       "examples_non_ste": [],
       "notes": null
+    },
+    {
+      "word": "continuous",
+      "part_of_speech": "adjective",
+      "status": "approved",
+      "approved_meaning": null,
+      "inflections": [],
+      "alternatives": [],
+      "category": null,
+      "rule_ref": "Rule 1.1",
+      "examples_ste": [],
+      "examples_non_ste": [],
+      "notes": "Lost in the extraction from the PDF. Added from osolmaz/ste100 dictionary.json and checked against ASD-STE100 Issue 9, page 202."
     },
     {
       "word": "continuously",
@@ -7929,6 +8022,19 @@
       "notes": null
     },
     {
+      "word": "counterclockwise",
+      "part_of_speech": "adverb",
+      "status": "approved",
+      "approved_meaning": null,
+      "inflections": [],
+      "alternatives": [],
+      "category": null,
+      "rule_ref": "Rule 1.1",
+      "examples_ste": [],
+      "examples_non_ste": [],
+      "notes": "Lost in the extraction from the PDF. Added from osolmaz/ste100 dictionary.json and checked against ASD-STE100 Issue 9, page 205."
+    },
+    {
       "word": "couple",
       "part_of_speech": "verb",
       "status": "unapproved",
@@ -8256,6 +8362,19 @@
         "There is a danger of fire. Hydraulic fluid is a danger to your health."
       ],
       "notes": null
+    },
+    {
+      "word": "dangerous",
+      "part_of_speech": "adjective",
+      "status": "approved",
+      "approved_meaning": null,
+      "inflections": [],
+      "alternatives": [],
+      "category": null,
+      "rule_ref": "Rule 1.1",
+      "examples_ste": [],
+      "examples_non_ste": [],
+      "notes": "Lost in the extraction from the PDF. Added from osolmaz/ste100 dictionary.json and checked against ASD-STE100 Issue 9, page 207."
     },
     {
       "word": "dangerously",
@@ -9416,6 +9535,21 @@
         "Ensure the two diametrically opposed V-grooves are in line with the rails."
       ],
       "notes": null
+    },
+    {
+      "word": "diametrically",
+      "part_of_speech": "adverb",
+      "status": "unapproved",
+      "approved_meaning": null,
+      "inflections": [],
+      "alternatives": [
+        "opposite"
+      ],
+      "category": null,
+      "rule_ref": "Rule 1.1",
+      "examples_ste": [],
+      "examples_non_ste": [],
+      "notes": "Lost in the extraction from the PDF. Added from osolmaz/ste100 dictionary.json and checked against ASD-STE100 Issue 9, page 216."
     },
     {
       "word": "differ",
@@ -11282,6 +11416,45 @@
       "notes": null
     },
     {
+      "word": "electromagnetic",
+      "part_of_speech": "adjective",
+      "status": "approved",
+      "approved_meaning": null,
+      "inflections": [],
+      "alternatives": [],
+      "category": null,
+      "rule_ref": "Rule 1.1",
+      "examples_ste": [],
+      "examples_non_ste": [],
+      "notes": "Lost in the extraction from the PDF. Added from osolmaz/ste100 dictionary.json and checked against ASD-STE100 Issue 9, page 230."
+    },
+    {
+      "word": "electromagnetically",
+      "part_of_speech": "adverb",
+      "status": "approved",
+      "approved_meaning": null,
+      "inflections": [],
+      "alternatives": [],
+      "category": null,
+      "rule_ref": "Rule 1.1",
+      "examples_ste": [],
+      "examples_non_ste": [],
+      "notes": "Lost in the extraction from the PDF. Added from osolmaz/ste100 dictionary.json and checked against ASD-STE100 Issue 9, page 230."
+    },
+    {
+      "word": "electronic",
+      "part_of_speech": "adjective",
+      "status": "approved",
+      "approved_meaning": null,
+      "inflections": [],
+      "alternatives": [],
+      "category": null,
+      "rule_ref": "Rule 1.1",
+      "examples_ste": [],
+      "examples_non_ste": [],
+      "notes": "Lost in the extraction from the PDF. Added from osolmaz/ste100 dictionary.json and checked against ASD-STE100 Issue 9, page 230."
+    },
+    {
       "word": "electronically",
       "part_of_speech": "adverb",
       "status": "approved",
@@ -11876,6 +12049,19 @@
       "notes": null
     },
     {
+      "word": "equivalent",
+      "part_of_speech": "adjective",
+      "status": "approved",
+      "approved_meaning": null,
+      "inflections": [],
+      "alternatives": [],
+      "category": null,
+      "rule_ref": "Rule 1.1",
+      "examples_ste": [],
+      "examples_non_ste": [],
+      "notes": "Lost in the extraction from the PDF. Added from osolmaz/ste100 dictionary.json and checked against ASD-STE100 Issue 9, page 234."
+    },
+    {
       "word": "erase",
       "part_of_speech": "verb",
       "status": "approved",
@@ -12412,6 +12598,21 @@
         "If exceptional force is needed to open the unit, examine the control linkage. If the tire pressure is exceptionally high, open the valve."
       ],
       "notes": null
+    },
+    {
+      "word": "exceptionally",
+      "part_of_speech": "adverb",
+      "status": "unapproved",
+      "approved_meaning": null,
+      "inflections": [],
+      "alternatives": [
+        "unusually"
+      ],
+      "category": null,
+      "rule_ref": "Rule 1.1",
+      "examples_ste": [],
+      "examples_non_ste": [],
+      "notes": "Lost in the extraction from the PDF. Added from osolmaz/ste100 dictionary.json and checked against ASD-STE100 Issue 9, page 239."
     },
     {
       "word": "excess",
@@ -15830,6 +16031,19 @@
       "notes": null
     },
     {
+      "word": "gradually",
+      "part_of_speech": "adverb",
+      "status": "approved",
+      "approved_meaning": null,
+      "inflections": [],
+      "alternatives": [],
+      "category": null,
+      "rule_ref": "Rule 1.1",
+      "examples_ste": [],
+      "examples_non_ste": [],
+      "notes": "Lost in the extraction from the PDF. Added from osolmaz/ste100 dictionary.json and checked against ASD-STE100 Issue 9, page 265."
+    },
+    {
       "word": "graph",
       "part_of_speech": "verb",
       "status": "unapproved",
@@ -16976,6 +17190,19 @@
       "notes": null
     },
     {
+      "word": "horizontal",
+      "part_of_speech": "adjective",
+      "status": "approved",
+      "approved_meaning": null,
+      "inflections": [],
+      "alternatives": [],
+      "category": null,
+      "rule_ref": "Rule 1.1",
+      "examples_ste": [],
+      "examples_non_ste": [],
+      "notes": "Lost in the extraction from the PDF. Added from osolmaz/ste100 dictionary.json and checked against ASD-STE100 Issue 9, page 272."
+    },
+    {
       "word": "horizontally",
       "part_of_speech": "adverb",
       "status": "approved",
@@ -17446,6 +17673,21 @@
       "notes": null
     },
     {
+      "word": "implementation",
+      "part_of_speech": "noun",
+      "status": "unapproved",
+      "approved_meaning": null,
+      "inflections": [],
+      "alternatives": [
+        "do"
+      ],
+      "category": null,
+      "rule_ref": "Rule 1.1",
+      "examples_ste": [],
+      "examples_non_ste": [],
+      "notes": "Lost in the extraction from the PDF. Added from osolmaz/ste100 dictionary.json and checked against ASD-STE100 Issue 9, page 277."
+    },
+    {
       "word": "important",
       "part_of_speech": "adjective",
       "status": "approved",
@@ -17711,6 +17953,21 @@
         "Inadvertent operation of the system could cause fatal injuries."
       ],
       "notes": null
+    },
+    {
+      "word": "inadvertently",
+      "part_of_speech": "adverb",
+      "status": "unapproved",
+      "approved_meaning": null,
+      "inflections": [],
+      "alternatives": [
+        "accidentally"
+      ],
+      "category": null,
+      "rule_ref": "Rule 1.1",
+      "examples_ste": [],
+      "examples_non_ste": [],
+      "notes": "Lost in the extraction from the PDF. Added from osolmaz/ste100 dictionary.json and checked against ASD-STE100 Issue 9, page 280."
     },
     {
       "word": "inboard",
@@ -18567,6 +18824,19 @@
       "notes": null
     },
     {
+      "word": "installation",
+      "part_of_speech": "noun",
+      "status": "approved",
+      "approved_meaning": null,
+      "inflections": [],
+      "alternatives": [],
+      "category": null,
+      "rule_ref": "Rule 1.1",
+      "examples_ste": [],
+      "examples_non_ste": [],
+      "notes": "Lost in the extraction from the PDF. Added from osolmaz/ste100 dictionary.json and checked against ASD-STE100 Issue 9, page 285."
+    },
+    {
       "word": "instead",
       "part_of_speech": "adverb",
       "status": "unapproved",
@@ -18759,6 +19029,19 @@
       "notes": null
     },
     {
+      "word": "interchangeable",
+      "part_of_speech": "adjective",
+      "status": "approved",
+      "approved_meaning": null,
+      "inflections": [],
+      "alternatives": [],
+      "category": null,
+      "rule_ref": "Rule 1.1",
+      "examples_ste": [],
+      "examples_non_ste": [],
+      "notes": "Lost in the extraction from the PDF. Added from osolmaz/ste100 dictionary.json and checked against ASD-STE100 Issue 9, page 287."
+    },
+    {
       "word": "interconnect",
       "part_of_speech": "verb",
       "status": "unapproved",
@@ -18922,6 +19205,19 @@
       ],
       "examples_non_ste": [],
       "notes": null
+    },
+    {
+      "word": "internally",
+      "part_of_speech": "adverb",
+      "status": "approved",
+      "approved_meaning": null,
+      "inflections": [],
+      "alternatives": [],
+      "category": null,
+      "rule_ref": "Rule 1.1",
+      "examples_ste": [],
+      "examples_non_ste": [],
+      "notes": "Lost in the extraction from the PDF. Added from osolmaz/ste100 dictionary.json and checked against ASD-STE100 Issue 9, page 289."
     },
     {
       "word": "interrupt",
@@ -20857,6 +21153,19 @@
       "notes": null
     },
     {
+      "word": "maintenance",
+      "part_of_speech": "noun",
+      "status": "approved",
+      "approved_meaning": null,
+      "inflections": [],
+      "alternatives": [],
+      "category": null,
+      "rule_ref": "Rule 1.1",
+      "examples_ste": [],
+      "examples_non_ste": [],
+      "notes": "Lost in the extraction from the PDF. Added from osolmaz/ste100 dictionary.json and checked against ASD-STE100 Issue 9, page 305."
+    },
+    {
       "word": "major",
       "part_of_speech": "adjective",
       "status": "unapproved",
@@ -20949,6 +21258,32 @@
         "If the warning light is on when the door is closed, the microswitch is maladjusted. It is mandatory to wear protective clothing in the laboratory."
       ],
       "notes": null
+    },
+    {
+      "word": "malfunction",
+      "part_of_speech": "noun",
+      "status": "approved",
+      "approved_meaning": null,
+      "inflections": [],
+      "alternatives": [],
+      "category": null,
+      "rule_ref": "Rule 1.1",
+      "examples_ste": [],
+      "examples_non_ste": [],
+      "notes": "Lost in the extraction from the PDF. Added from osolmaz/ste100 dictionary.json and checked against ASD-STE100 Issue 9, page 306."
+    },
+    {
+      "word": "mandatory",
+      "part_of_speech": "adjective",
+      "status": "approved",
+      "approved_meaning": null,
+      "inflections": [],
+      "alternatives": [],
+      "category": null,
+      "rule_ref": "Rule 1.1",
+      "examples_ste": [],
+      "examples_non_ste": [],
+      "notes": "Lost in the extraction from the PDF. Added from osolmaz/ste100 dictionary.json and checked against ASD-STE100 Issue 9, page 306."
     },
     {
       "word": "manipulate",
@@ -21294,6 +21629,19 @@
       ],
       "examples_non_ste": [],
       "notes": null
+    },
+    {
+      "word": "mechanical",
+      "part_of_speech": "adjective",
+      "status": "approved",
+      "approved_meaning": null,
+      "inflections": [],
+      "alternatives": [],
+      "category": null,
+      "rule_ref": "Rule 1.1",
+      "examples_ste": [],
+      "examples_non_ste": [],
+      "notes": "Lost in the extraction from the PDF. Added from osolmaz/ste100 dictionary.json and checked against ASD-STE100 Issue 9, page 309."
     },
     {
       "word": "mechanically",
@@ -22286,38 +22634,6 @@
       "examples_non_ste": [
         "Neither of the units must operate."
       ],
-      "notes": null
-    },
-    {
-      "word": "netic",
-      "part_of_speech": "adjective",
-      "status": "approved",
-      "approved_meaning": "electromagnetism Related to",
-      "inflections": [
-        "electromag-"
-      ],
-      "alternatives": [],
-      "category": null,
-      "rule_ref": "Rule 1.1",
-      "examples_ste": [
-        "ELECTROMAGNETIC TEST PROCEDURE USES ELECTROMAGNETIC FORCE. THE SYSTEM"
-      ],
-      "examples_non_ste": [],
-      "notes": null
-    },
-    {
-      "word": "netically",
-      "part_of_speech": "adverb",
-      "status": "approved",
-      "approved_meaning": "electromagnetism by electronics",
-      "inflections": [],
-      "alternatives": [],
-      "category": null,
-      "rule_ref": "Rule 1.1",
-      "examples_ste": [
-        "OPERATES ELECTROMAG- NETICALLY. THIS BAY CONTAINS SOME OF THE ELECTRONIC EQUIPMENT."
-      ],
-      "examples_non_ste": [],
       "notes": null
     },
     {
@@ -25632,6 +25948,19 @@
       "notes": null
     },
     {
+      "word": "previously",
+      "part_of_speech": "adverb",
+      "status": "approved",
+      "approved_meaning": null,
+      "inflections": [],
+      "alternatives": [],
+      "category": null,
+      "rule_ref": "Rule 1.1",
+      "examples_ste": [],
+      "examples_non_ste": [],
+      "notes": "Lost in the extraction from the PDF. Added from osolmaz/ste100 dictionary.json and checked against ASD-STE100 Issue 9, page 339."
+    },
+    {
       "word": "primarily",
       "part_of_speech": "adverb",
       "status": "unapproved",
@@ -26030,6 +26359,21 @@
         "Apply progressive torque to the nut. Torque the bolts progressively."
       ],
       "notes": null
+    },
+    {
+      "word": "progressively",
+      "part_of_speech": "adverb",
+      "status": "unapproved",
+      "approved_meaning": null,
+      "inflections": [],
+      "alternatives": [
+        "gradually"
+      ],
+      "category": null,
+      "rule_ref": "Rule 1.1",
+      "examples_ste": [],
+      "examples_non_ste": [],
+      "notes": "Lost in the extraction from the PDF. Added from osolmaz/ste100 dictionary.json and checked against ASD-STE100 Issue 9, page 342."
     },
     {
       "word": "prohibit",
@@ -27688,6 +28032,19 @@
       ],
       "examples_non_ste": [],
       "notes": null
+    },
+    {
+      "word": "regularly",
+      "part_of_speech": "adverb",
+      "status": "approved",
+      "approved_meaning": null,
+      "inflections": [],
+      "alternatives": [],
+      "category": null,
+      "rule_ref": "Rule 1.1",
+      "examples_ste": [],
+      "examples_non_ste": [],
+      "notes": "Lost in the extraction from the PDF. Added from osolmaz/ste100 dictionary.json and checked against ASD-STE100 Issue 9, page 355."
     },
     {
       "word": "regulate",
@@ -30043,6 +30400,19 @@
       "notes": null
     },
     {
+      "word": "secondary",
+      "part_of_speech": "adjective",
+      "status": "approved",
+      "approved_meaning": null,
+      "inflections": [],
+      "alternatives": [],
+      "category": null,
+      "rule_ref": "Rule 1.1",
+      "examples_ste": [],
+      "examples_non_ste": [],
+      "notes": "Lost in the extraction from the PDF. Added from osolmaz/ste100 dictionary.json and checked against ASD-STE100 Issue 9, page 369."
+    },
+    {
       "word": "secure",
       "part_of_speech": "adjective",
       "status": "unapproved",
@@ -31164,6 +31534,21 @@
         "Simultaneous removal of the filter element and the filter housing is obligatory."
       ],
       "notes": null
+    },
+    {
+      "word": "simultaneous",
+      "part_of_speech": "adjective",
+      "status": "unapproved",
+      "approved_meaning": null,
+      "inflections": [],
+      "alternatives": [
+        "at the same time"
+      ],
+      "category": null,
+      "rule_ref": "Rule 1.1",
+      "examples_ste": [],
+      "examples_non_ste": [],
+      "notes": "Lost in the extraction from the PDF. Added from osolmaz/ste100 dictionary.json and checked against ASD-STE100 Issue 9, page 378."
     },
     {
       "word": "simultaneously",
@@ -34465,6 +34850,19 @@
       "notes": null
     },
     {
+      "word": "telescopic",
+      "part_of_speech": "adjective",
+      "status": "approved",
+      "approved_meaning": null,
+      "inflections": [],
+      "alternatives": [],
+      "category": null,
+      "rule_ref": "Rule 1.1",
+      "examples_ste": [],
+      "examples_non_ste": [],
+      "notes": "Lost in the extraction from the PDF. Added from osolmaz/ste100 dictionary.json and checked against ASD-STE100 Issue 9, page 400."
+    },
+    {
       "word": "tell",
       "part_of_speech": "verb",
       "status": "approved",
@@ -34498,6 +34896,19 @@
       ],
       "examples_non_ste": [],
       "notes": null
+    },
+    {
+      "word": "temporary",
+      "part_of_speech": "adjective",
+      "status": "approved",
+      "approved_meaning": null,
+      "inflections": [],
+      "alternatives": [],
+      "category": null,
+      "rule_ref": "Rule 1.1",
+      "examples_ste": [],
+      "examples_non_ste": [],
+      "notes": "Lost in the extraction from the PDF. Added from osolmaz/ste100 dictionary.json and checked against ASD-STE100 Issue 9, page 400."
     },
     {
       "word": "tension",
@@ -35387,23 +35798,6 @@
       "notes": null
     },
     {
-      "word": "torily",
-      "part_of_speech": "adverb",
-      "status": "approved",
-      "approved_meaning": "manner Not satisfactory",
-      "inflections": [
-        "unsatisfac-"
-      ],
-      "alternatives": [],
-      "category": null,
-      "rule_ref": "Rule 1.1",
-      "examples_ste": [
-        "OPERATE UNSATISFACTORILY, MOVE THE CONTROL COLUMN. IF THE CONDITION OF"
-      ],
-      "examples_non_ste": [],
-      "notes": null
-    },
-    {
       "word": "torque",
       "part_of_speech": "verb",
       "status": "approved",
@@ -35417,21 +35811,6 @@
       "rule_ref": "Rule 1.1",
       "examples_ste": [
         "TORQUE THE PLUG TO 6 Nm."
-      ],
-      "examples_non_ste": [],
-      "notes": null
-    },
-    {
-      "word": "tory",
-      "part_of_speech": "adjective",
-      "status": "approved",
-      "approved_meaning": null,
-      "inflections": [],
-      "alternatives": [],
-      "category": null,
-      "rule_ref": "Rule 1.1",
-      "examples_ste": [
-        "THE FILTERS IS UNSATISFACTORY, REPLACE THEM."
       ],
       "examples_non_ste": [],
       "notes": null
@@ -36659,6 +37038,22 @@
       "notes": null
     },
     {
+      "word": "unobstructed",
+      "part_of_speech": "adjective",
+      "status": "unapproved",
+      "approved_meaning": null,
+      "inflections": [],
+      "alternatives": [
+        "clogged",
+        "clear"
+      ],
+      "category": null,
+      "rule_ref": "Rule 1.1",
+      "examples_ste": [],
+      "examples_non_ste": [],
+      "notes": "Lost in the extraction from the PDF. Added from osolmaz/ste100 dictionary.json and checked against ASD-STE100 Issue 9, page 416."
+    },
+    {
       "word": "unpack",
       "part_of_speech": "verb",
       "status": "unapproved",
@@ -36795,6 +37190,32 @@
       "notes": null
     },
     {
+      "word": "unsatisfactorily",
+      "part_of_speech": "adverb",
+      "status": "approved",
+      "approved_meaning": null,
+      "inflections": [],
+      "alternatives": [],
+      "category": null,
+      "rule_ref": "Rule 1.1",
+      "examples_ste": [],
+      "examples_non_ste": [],
+      "notes": "Lost in the extraction from the PDF. Added from osolmaz/ste100 dictionary.json and checked against ASD-STE100 Issue 9, page 417."
+    },
+    {
+      "word": "unsatisfactory",
+      "part_of_speech": "adjective",
+      "status": "approved",
+      "approved_meaning": null,
+      "inflections": [],
+      "alternatives": [],
+      "category": null,
+      "rule_ref": "Rule 1.1",
+      "examples_ste": [],
+      "examples_non_ste": [],
+      "notes": "Lost in the extraction from the PDF. Added from osolmaz/ste100 dictionary.json and checked against ASD-STE100 Issue 9, page 417."
+    },
+    {
       "word": "unscrew",
       "part_of_speech": "verb",
       "status": "unapproved",
@@ -36912,6 +37333,19 @@
       ],
       "examples_non_ste": [],
       "notes": null
+    },
+    {
+      "word": "unusually",
+      "part_of_speech": "adverb",
+      "status": "approved",
+      "approved_meaning": null,
+      "inflections": [],
+      "alternatives": [],
+      "category": null,
+      "rule_ref": "Rule 1.1",
+      "examples_ste": [],
+      "examples_non_ste": [],
+      "notes": "Lost in the extraction from the PDF. Added from osolmaz/ste100 dictionary.json and checked against ASD-STE100 Issue 9, page 418."
     },
     {
       "word": "unwanted",
@@ -37499,6 +37933,19 @@
       ],
       "examples_non_ste": [],
       "notes": null
+    },
+    {
+      "word": "vertically",
+      "part_of_speech": "adverb",
+      "status": "approved",
+      "approved_meaning": null,
+      "inflections": [],
+      "alternatives": [],
+      "category": null,
+      "rule_ref": "Rule 1.1",
+      "examples_ste": [],
+      "examples_non_ste": [],
+      "notes": "Lost in the extraction from the PDF. Added from osolmaz/ste100 dictionary.json and checked against ASD-STE100 Issue 9, page 422."
     },
     {
       "word": "very",
@@ -38541,21 +38988,6 @@
       "examples_non_ste": [
         "Wire-lock the four bolts to each other. Wire-lock the four bolts to each other."
       ],
-      "notes": null
-    },
-    {
-      "word": "wise",
-      "part_of_speech": "adverb",
-      "status": "approved",
-      "approved_meaning": "to clockwise",
-      "inflections": [],
-      "alternatives": [],
-      "category": null,
-      "rule_ref": "Rule 1.1",
-      "examples_ste": [
-        "TURN THE CONTROL KNOB COUNTERCLOCKWISE."
-      ],
-      "examples_non_ste": [],
       "notes": null
     },
     {
