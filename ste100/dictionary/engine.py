@@ -173,6 +173,9 @@ def _normalize_key(word: str) -> str:
     return word.strip().lower()
 
 
+_LINE_REFERENCE = re.compile(r":\d+(?:-\d+)?$")
+
+
 def _last_part(path: str) -> str:
     """The part of a path after its last slash."""
     return path.rstrip("/").rsplit("/", 1)[-1]
@@ -559,7 +562,8 @@ class DictionaryEngine:
         part are one entry: "rules/writing-standards.md" in a glossary covers
         "writing-standards.md", and the reverse.
         """
-        key = _normalize_key(name)
+        # A line reference after a file name (Windowing.cs:185, :252-260).
+        key = _LINE_REFERENCE.sub("", _normalize_key(name))
         if key in self.glossary_words:
             return True
         last = _last_part(key)
