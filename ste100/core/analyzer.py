@@ -10,7 +10,7 @@ import spacy
 from spacy.language import Language
 from spacy.tokens import Doc
 
-from ste100.core.markdown import mask_markdown
+from ste100.core.markdown import prepare_markdown
 from ste100.core.schema import AnalysisResult, Finding, Severity, TextType
 from ste100.dictionary.engine import DictionaryEngine, resolve_engine
 from ste100.rules.context import AnalysisContext
@@ -141,6 +141,21 @@ def _summary(findings: list[Finding]) -> dict[str, int]:
     return counts
 
 
+def _parse_with_sentence_starts(nlp: Language, text: str, starts: list[int]) -> Doc:
+    """Run the pipeline with a sentence start fixed at each offset.
+
+    The dependency parser keeps sentence starts that are set before it runs.
+    """
+    doc = nlp.make_doc(text)
+    wanted = set(starts)
+    for token in doc:
+        if token.idx in wanted and token.i > 0:
+            token.is_sent_start = True
+    for _name, proc in nlp.pipeline:
+        doc = proc(doc)
+    return doc
+
+
 def analyze(
     text: str,
     text_type: TextType | str = TextType.AUTO,
@@ -157,8 +172,10 @@ def analyze(
     requested = _parse_text_type(text_type)
     nlp = get_nlp()
     if markdown:
-        text = mask_markdown(text)
-    doc = nlp(text)
+        text, starts = prepare_markdown(text)
+        doc = _parse_with_sentence_starts(nlp, text, starts)
+    else:
+        doc = nlp(text)
 
     engine = resolve_engine(dictionary, glossary_path)
 
@@ -168,6 +185,15 @@ def analyze(
     findings: list[Finding] = []
     for check in get_all_checks():
         findings.extend(check(doc, context))
+
+    if markdown:
+        # A masked pipe or marker is whitespace in ``text`` but not in the
+        # original, so a span that ends in whitespace must not cover it.
+        for finding in findings:
+            while finding.end > finding.start and text[finding.end - 1].isspace():
+                finding.end -= 1
+            while finding.start < finding.end and text[finding.start].isspace():
+                finding.start += 1
 
     findings.sort(key=lambda f: (f.start, f.end, f.rule_id))
 
