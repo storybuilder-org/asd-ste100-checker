@@ -68,23 +68,28 @@ _LOWERCASE_WORD = re.compile(r"^[a-z]+$")
 _PATH_CONTENT = re.compile(r"^(?:[A-Za-z]:)?[\w.~-]*(?:[\\/][\w.~-]+)+[\\/]?$")
 
 _CODE_URL = re.compile(r"https?://[^\s\"'`<>()\[\]{}]*[^\s\"'`<>()\[\]{}.,;:!?]")
-_CODE_CHUNK = re.compile(r"[^\s\"'`<>()\[\]{}=;,|&*+!?]+")
+# A placeholder such as <n> is part of the word around it.
+_CODE_CHUNK = re.compile(r"(?:<\w+>|[^\s\"'`<>()\[\]{}=;,|&*+!?])+")
 # A path inside code: a drive and backslashes (D:\dev\src), or a word and
 # forward slashes (process/word-lists/shared.yaml, ~/.claude). An RTF code
 # such as \rtf1 or a\par is not a path.
-_CODE_PATH = re.compile(r"^(?:[A-Za-z]:(?:\\[\w.~-]+)+\\?|[\w.~-]+(?:/[\w.~-]+)+/?)$")
+_SEG = r"(?:<\w+>|[\w.~-])+"
+_CODE_PATH = re.compile(rf"^(?:[A-Za-z]:(?:\\{_SEG})+\\?|{_SEG}(?:/{_SEG})+/?)$")
+# A command option: -x or --name.
+_CODE_OPTION = re.compile(r"^--?[A-Za-z][\w-]*$")
+_HAS_OPTION = re.compile(r"(?:^|\s)--?[A-Za-z]")
 
 
 def _words_in_code(code: str) -> list[tuple[int, int, bool]]:
     """(start, end, is_name) of each word in a piece of code.
 
-    A URL or a path is one name. Each other word is an identifier: a name,
-    or English text if it is lower-case letters only.
+    A URL, a path or a command option is one name. Each other word is an
+    identifier: a name, or English text if it is lower-case letters only.
     """
     taken: list[tuple[int, int]] = [m.span() for m in _CODE_URL.finditer(code)]
     for m in _CODE_CHUNK.finditer(code):
         chunk = m.group(0)
-        if _CODE_PATH.match(chunk):
+        if _CODE_PATH.match(chunk) or _CODE_OPTION.match(chunk):
             if all(m.end() <= a or m.start() >= b for a, b in taken):
                 taken.append(m.span())
     out = [(a, b, True) for a, b in taken]
@@ -177,7 +182,7 @@ def prepare_markdown(text: str) -> tuple[str, list[int], list[tuple[int, int]]]:
             content = line[s:e]
             if _PATH_CONTENT.match(content):
                 names.append((here + s, here + e))  # one name: a file, a path
-            elif any(ch in _CODE_CHARS for ch in content):
+            elif any(ch in _CODE_CHARS for ch in content) or _HAS_OPTION.search(content):
                 # Code: each name in it is checked. The characters between the
                 # names (numbers, punctuation) become spaces, so the tokenizer
                 # does not join them to a name.
