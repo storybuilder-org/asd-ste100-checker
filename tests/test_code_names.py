@@ -168,15 +168,29 @@ def test_lowercase_word_in_code_is_checked_as_a_word() -> None:
     findings = _span_findings(text)
     names = [text[f.start : f.end] for f in findings
              if f.evidence.get("status") == "name_not_in_glossary"]
-    assert names == ["File", "filePath"]
+    assert names[:2] == ["File", "filePath"]
     assert "is" not in [text[f.start : f.end] for f in findings]
 
 
-def test_unapproved_lowercase_word_in_code_is_reported_as_a_word() -> None:
+def test_unapproved_lowercase_word_in_code_is_a_name() -> None:
+    """In code, a lower-case word that the dictionary does not approve is a
+    name (a command, a keyword), and a glossary must list it."""
     text = "The comment says `// utilize {x} here`.\n"
     hits = [f for f in _span_findings(text) if text[f.start : f.end] == "utilize"]
     assert len(hits) == 1
-    assert hits[0].evidence["status"] != "name_not_in_glossary"
+    assert hits[0].evidence["status"] == "name_not_in_glossary"
+
+
+@pytest.mark.parametrize(("code", "names"), [
+    ("ste100 check --markdown", ["ste100", "--markdown"]),
+    ("ste100 glossary verify --x", ["ste100", "glossary", "verify", "--x"]),
+])
+def test_approved_lowercase_word_in_code_gets_no_finding(code: str, names: list[str]) -> None:
+    """'check' is approved (as a noun), so it passes; 'verify' is not, so it
+    is a name. The part of speech is not tested inside code."""
+    text = f"Give `{code}` now.\n"
+    found = [text[f.start : f.end] for f in _span_findings(text)]
+    assert found == names
 
 
 def test_listed_names_in_code_get_no_finding(tmp_path: Path) -> None:
@@ -197,7 +211,7 @@ def test_rtf_in_a_table_cell_is_checked_name_by_name() -> None:
                 if f.start >= start]
     names = [text[f.start : f.end] for f in findings
              if f.evidence.get("status") == "name_not_in_glossary"]
-    assert names == ["rtf1", "red0", "green0", "blue0", "cf1"]
+    assert names == ["rtf1", "colortbl", "red0", "green0", "blue0", "cf1", "par"]
     # 'a' is an approved English word.
     assert "a" not in [text[f.start : f.end] for f in findings]
 
@@ -226,9 +240,8 @@ def test_each_name_in_a_fenced_code_block_is_checked() -> None:
                 if f.start >= fence_start]
     names = [text[f.start : f.end] for f in findings
              if f.evidence.get("status") == "name_not_in_glossary"]
-    assert names == ["Foo", "Bar"]
-    # 'var' is lower case: it is checked as a word, and it is not in the dictionary.
-    assert "var" in [text[f.start : f.end] for f in findings]
+    # 'var' and 'x' are not in the dictionary, so they are names.
+    assert names == ["var", "x", "Foo", "Bar"]
 
 
 @pytest.mark.parametrize(
@@ -260,8 +273,8 @@ def test_placeholder_in_a_path_is_part_of_the_path() -> None:
 
 
 @pytest.mark.parametrize(("code", "names"), [
-    ("node --test", ["--test"]),
-    ("uv tool dir --bin", ["--bin"]),
+    ("node --test", ["node", "--test"]),
+    ("uv tool dir --bin", ["uv", "dir", "--bin"]),
 ])
 def test_command_with_an_option_in_a_code_span_is_code(code: str, names: list[str]) -> None:
     """A code span with an option (-x or --name) is a command, not quoted text."""
