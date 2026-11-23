@@ -37,6 +37,19 @@ def test_bare_code_name_is_not_reported(name: str) -> None:
     assert name not in _vocab_words(f"The name {name} is in the code.")
 
 
+@pytest.mark.parametrize(
+    ("text", "pieces"),
+    [
+        ("Open storybuilder-org/process now.", {"storybuilder", "org", "process"}),
+        ("Read issue-8-design.md first.", {"issue", "design", "design.md"}),
+        ("See https://github.com/storybuilder-org/process now.",
+         {"github.com", "storybuilder", "org", "process"}),
+    ],
+)
+def test_bare_hyphenated_path_is_not_split(text: str, pieces: set[str]) -> None:
+    assert not _vocab_words(text) & pieces
+
+
 def test_abbreviation_with_periods_is_still_reported() -> None:
     """'e.g.' is not a code name. A dotted name does not end in a period."""
     assert "e.g." in _vocab_words("Use a tool, e.g. a wrench.")
