@@ -46,6 +46,17 @@ def _code_spans(line: str) -> list[tuple[int, int]]:
     return out
 
 
+def _blank_backticks(line: str) -> str:
+    """Spaces in place of the backticks that open and close each code span.
+    They are markup; left in, the tokenizer joins two names around them."""
+    chars = list(line)
+    for m in _CODE_SPAN.finditer(line):
+        ticks = len(m.group(1))
+        for i in [*range(m.start(), m.start() + ticks), *range(m.end() - ticks, m.end())]:
+            chars[i] = " "
+    return "".join(chars)
+
+
 # Characters that mark the content of a code span as code, not a name or text.
 _CODE_CHARS = frozenset("(){}[]<>=;\\\"',?!&*+|")
 _IDENTIFIER = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
@@ -128,6 +139,7 @@ def prepare_markdown(text: str) -> tuple[str, list[int], list[tuple[int, int]]]:
 
         spans = _code_spans(line)
         line = _blank_link_markup(line, spans)
+        line = _blank_backticks(line)
         for s, e in spans:
             content = line[s:e]
             if any(ch in _CODE_CHARS for ch in content):
