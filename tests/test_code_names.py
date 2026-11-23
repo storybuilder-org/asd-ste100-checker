@@ -73,6 +73,18 @@ def test_path_and_its_file_name_are_one_entry(tmp_path: Path, listed: str, writt
     assert hits == []
 
 
+@pytest.mark.parametrize(
+    "written",
+    ["StoryCADLib/Models/Windowing.cs:185", "Windowing.cs:252-260"],
+)
+def test_a_line_reference_is_covered_by_the_file_entry(tmp_path: Path, written: str) -> None:
+    """issue-1638-design.md names files with a line number after a colon."""
+    text = f"Read {written} first."
+    hits = [f for f in _vocab(text, glossary_path=_glossary(tmp_path, "StoryCADLib/Models/Windowing.cs"))
+            if f.evidence.get("status") == "name_not_in_glossary"]
+    assert hits == []
+
+
 def test_a_different_file_name_is_not_covered(tmp_path: Path) -> None:
     text = "Read rules/language.md first."
     hits = [f for f in _vocab(text, glossary_path=_glossary(tmp_path, "rules/writing-standards.md"))
