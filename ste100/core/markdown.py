@@ -60,6 +60,10 @@ def _blank_backticks(line: str) -> str:
 # Characters that mark the content of a code span as code, not a name or text.
 _CODE_CHARS = frozenset("(){}[]<>=;\\\"',?!&*+|")
 _IDENTIFIER = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
+# In code, a word of lower-case letters only is English text (a message, a
+# comment, a keyword) and is checked against the dictionary as a word. Any
+# other word in code is a name and is checked against the glossaries.
+_LOWERCASE_WORD = re.compile(r"^[a-z]+$")
 # A file path with no space: D:\dev\src\CLAUDE.md, ~/.claude/CLAUDE.md.
 _PATH_CONTENT = re.compile(r"^(?:[A-Za-z]:)?[\w.~-]*(?:[\\/][\w.~-]+)+[\\/]?$")
 
@@ -125,7 +129,8 @@ def prepare_markdown(text: str) -> tuple[str, list[int], list[tuple[int, int]]]:
             chars = [" " if ch not in "\r\n" else ch for ch in line]
             for a, b in found:
                 chars[a:b] = line[a:b]
-                names.append((here + a, here + b))
+                if not _LOWERCASE_WORD.match(line[a:b]):
+                    names.append((here + a, here + b))
                 starts.append(here + a)
             out.append("".join(chars))
             continue
@@ -156,7 +161,11 @@ def prepare_markdown(text: str) -> tuple[str, list[int], list[tuple[int, int]]]:
                     if not any(a <= i < b for a, b in found):
                         chars[i] = " "
                 line = "".join(chars)
-                names.extend((here + a, here + b) for a, b in found)
+                names.extend(
+                    (here + a, here + b)
+                    for a, b in found
+                    if not _LOWERCASE_WORD.match(line[a:b])
+                )
             elif " " not in content:
                 names.append((here + s, here + e))  # one name: a file, a path
             # Otherwise the span quotes text, and its words are checked as words.
