@@ -16,6 +16,8 @@ import re
 _FENCE_OPEN = re.compile(r"^ {0,3}(`{3,}|~{3,})")
 _CODE_SPAN = re.compile(r"(?<!`)(`+)(?!`)(.+?)(?<!`)\1(?!`)")
 _HEADING = re.compile(r"^( {0,3}#{1,6})(?=\s|$)")
+# A list item: "- ", "* ", "+ " or "1. " at the start of a line.
+_LIST_ITEM = re.compile(r"^\s*(?:[-*+]|\d+[.)])\s+\S")
 _TABLE_DELIMITER = re.compile(r"^\s*\|?\s*:?-+:?\s*(\|\s*:?-+:?\s*)*\|?\s*$")
 
 
@@ -226,7 +228,7 @@ def prepare_markdown(
             new_block = True
             continue
 
-        if new_block:
+        if new_block or _LIST_ITEM.match(line):
             starts.extend(_first_text(line, here))
             new_block = False
         out.append(line)
