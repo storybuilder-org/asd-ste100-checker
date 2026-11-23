@@ -219,6 +219,25 @@ def test_each_name_in_a_fenced_code_block_is_checked() -> None:
     assert "var" in [text[f.start : f.end] for f in findings]
 
 
+@pytest.mark.parametrize(
+    ("code", "name"),
+    [
+        ('uv tool install "git+https://github.com/storybuilder-org/asd-ste100-checker"',
+         "https://github.com/storybuilder-org/asd-ste100-checker"),
+        ("ste100 check --glossary process/word-lists/shared.yaml",
+         "process/word-lists/shared.yaml"),
+        (r"cd D:\dev\src\process", r"D:\dev\src\process"),
+    ],
+)
+def test_url_or_path_in_code_is_one_name(code: str, name: str) -> None:
+    """A URL or a path inside code is one name, not cut into its words."""
+    for text in (f"Run this.\n\n```\n{code}\n```\n", f"Run `{code}` now.\n"):
+        names = [text[f.start : f.end] for f in _vocab(text, markdown=True)
+                 if f.evidence.get("status") == "name_not_in_glossary"]
+        assert name in names, text
+        assert not any(n != name and n in name for n in names), (text, names)
+
+
 def test_listed_names_in_a_fenced_code_block_get_no_finding(tmp_path: Path) -> None:
     text = "Do the test.\n\n```\nvar x = Foo.Bar(1);\n```\n"
     fence_start = text.index("```")
