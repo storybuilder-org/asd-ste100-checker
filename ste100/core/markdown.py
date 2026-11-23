@@ -60,6 +60,8 @@ def _blank_backticks(line: str) -> str:
 # Characters that mark the content of a code span as code, not a name or text.
 _CODE_CHARS = frozenset("(){}[]<>=;\\\"',?!&*+|")
 _IDENTIFIER = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
+# A file path with no space: D:\dev\src\CLAUDE.md, ~/.claude/CLAUDE.md.
+_PATH_CONTENT = re.compile(r"^(?:[A-Za-z]:)?[\w.~-]*(?:[\\/][\w.~-]+)+[\\/]?$")
 
 _LINK = re.compile(r"!?\[([^\]\n]*)\]\(([^)\s]+)\)")
 
@@ -142,7 +144,9 @@ def prepare_markdown(text: str) -> tuple[str, list[int], list[tuple[int, int]]]:
         line = _blank_backticks(line)
         for s, e in spans:
             content = line[s:e]
-            if any(ch in _CODE_CHARS for ch in content):
+            if _PATH_CONTENT.match(content):
+                names.append((here + s, here + e))  # one name: a file, a path
+            elif any(ch in _CODE_CHARS for ch in content):
                 # Code: each name in it is checked. The characters between the
                 # names (numbers, punctuation) become spaces, so the tokenizer
                 # does not join them to a name.
