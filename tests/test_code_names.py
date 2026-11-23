@@ -137,6 +137,13 @@ def test_quoted_text_in_a_code_span_is_checked_word_by_word() -> None:
     assert names == ["fixed", "Utilize"]
 
 
+def test_names_in_code_are_not_a_noun_cluster() -> None:
+    """issue-8-design.md: the words of a command are not English nouns."""
+    text = "The session gives the command `ste100 glossary merge word-lists/shared.yaml` now.\n"
+    result = analyze(text, text_type="description", markdown=True)
+    assert [f for f in result.findings if f.rule_id == "STE-NOUN-CLUSTER"] == []
+
+
 def test_a_name_is_not_a_verb_form() -> None:
     """issue-8-design.md: "A finding is `blocking` if ..." """
     text = "A finding is `blocking` if the next step will be incorrect.\n"
