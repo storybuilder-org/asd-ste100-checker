@@ -45,6 +45,23 @@ def _code_spans(line: str) -> list[tuple[int, int]]:
     return out
 
 
+_LINK = re.compile(r"!?\[([^\]\n]*)\]\(([^)\s]+)\)")
+
+
+def _blank_link_markup(line: str, spans: list[tuple[int, int]]) -> str:
+    """Spaces in place of the markup of each inline link: ``[``, ``](`` and
+    ``)``. The link text and the URL stay. A link inside a code span is not
+    markup."""
+    chars = list(line)
+    for m in _LINK.finditer(line):
+        if any(s <= m.start() < e for s, e in spans):
+            continue
+        markup = [*range(m.start(), m.start(1)), m.end(1), m.end(1) + 1, m.end() - 1]
+        for i in markup:
+            chars[i] = " "
+    return "".join(chars)
+
+
 def _table_pipes(line: str, spans: list[tuple[int, int]]) -> list[int]:
     """Positions of the cell separators: unescaped pipes outside code spans."""
     pipes = []
@@ -92,7 +109,9 @@ def prepare_markdown(text: str) -> tuple[str, list[int], list[tuple[int, int]]]:
             continue
 
         spans = _code_spans(line)
-        names.extend((here + s, here + e) for s, e in spans)
+        # A code span with a space quotes text; its words are checked as words.
+        names.extend((here + s, here + e) for s, e in spans if " " not in line[s:e])
+        line = _blank_link_markup(line, spans)
 
         heading = _HEADING.match(line)
         if heading:
