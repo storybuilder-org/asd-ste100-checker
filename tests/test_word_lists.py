@@ -106,6 +106,23 @@ def test_merge_copies_preferred_terms_and_stops_on_a_different_value(tmp_path: P
     assert "antagonist" in result.output
 
 
+def test_merge_keeps_a_noun_and_a_verb_of_the_same_word(tmp_path: Path) -> None:
+    """The noun "commit" and the verb "commit" are two entries, in two lists.
+    Found when the first shared word list was built."""
+    shared = tmp_path / "shared.yaml"
+    issue = _write(tmp_path / "issue.yaml", {
+        "technical_nouns": [{"word": "commit", "approved_meaning": "One recorded set of changes.",
+                             "shared": True}],
+        "technical_verbs": [{"word": "commit", "approved_meaning": "To record a set of changes.",
+                             "shared": True}],
+    })
+    result = _merge(shared, issue)
+    assert result.exit_code == 0, result.output
+    data = _read(shared)
+    assert [e["word"] for e in data["technical_nouns"]] == ["commit"]
+    assert [e["word"] for e in data["technical_verbs"]] == ["commit"]
+
+
 def test_merge_makes_the_shared_list_if_it_is_not_there(tmp_path: Path) -> None:
     shared = tmp_path / "shared.yaml"
     issue = _write(tmp_path / "issue.yaml", {"technical_nouns": [
