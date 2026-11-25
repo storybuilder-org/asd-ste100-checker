@@ -244,10 +244,14 @@ def check_pronoun_ambiguity(doc: Doc, context: AnalysisContext) -> list[Finding]
     return findings
 
 
-def _first_content_sentence(doc: Doc) -> Span | None:
+def _first_content_sentence(
+    doc: Doc, headings: tuple[tuple[int, int], ...] = ()
+) -> Span | None:
     for sent in doc.sents:
         if is_heading_or_label(sent):
             continue
+        if any(a <= sent.start_char < b for a, b in headings):
+            continue  # a Markdown heading is not the topic sentence
         if not content_tokens(sent):
             continue
         return sent
@@ -333,7 +337,7 @@ def check_topic_sentence(doc: Doc, context: AnalysisContext) -> list[Finding]:
         _exhaustive: Never = context.text_type
         raise AssertionError(f"Unhandled TextType: {_exhaustive}")
 
-    sent = _first_content_sentence(doc)
+    sent = _first_content_sentence(doc, context.heading_spans)
     if sent is None:
         return []
 

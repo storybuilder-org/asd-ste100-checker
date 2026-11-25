@@ -15,7 +15,7 @@ import spacy
 from spacy.language import Language
 from spacy.tokens import Doc
 
-from ste100.core.markdown import prepare_markdown
+from ste100.core.markdown import heading_spans, prepare_markdown
 from ste100.core.schema import AnalysisResult, Finding, Severity, TextType
 from ste100.dictionary.engine import DictionaryEngine, is_code_name, resolve_engine
 from ste100.rules.context import AnalysisContext
@@ -330,7 +330,9 @@ def _analyze_text(
     starts: list[int] = []
     code_spans: list[tuple[int, int]] = []
     code_words: list[tuple[int, int]] = []
+    headings: list[tuple[int, int]] = []
     if markdown:
+        headings = heading_spans(text)
         text, starts, code_spans, code_words = prepare_markdown(text)
     doc, name_tokens = _parse(nlp, text, starts, _name_spans(text, code_spans))
     code_word_starts = {start for start, _ in code_words}
@@ -344,6 +346,7 @@ def _analyze_text(
         term_tokens=frozenset(engine.multiword_term_tokens([t.text for t in doc])),
         name_tokens=name_tokens,
         code_word_tokens=code_word_tokens,
+        heading_spans=tuple(headings),
     )
 
     findings: list[Finding] = []

@@ -134,6 +134,28 @@ def _table_pipes(line: str, spans: list[tuple[int, int]]) -> list[int]:
     return pipes
 
 
+def heading_spans(text: str) -> list[tuple[int, int]]:
+    """(start, end) of each Markdown heading line outside a fenced code block."""
+    spans: list[tuple[int, int]] = []
+    fence: str | None = None
+    offset = 0
+    for line in text.splitlines(keepends=True):
+        here = offset
+        offset += len(line)
+        stripped = line.strip()
+        if fence is not None:
+            if stripped.startswith(fence) and set(stripped) == {fence[0]}:
+                fence = None
+            continue
+        opened = _FENCE_OPEN.match(line)
+        if opened:
+            fence = opened.group(1)
+            continue
+        if _HEADING.match(line):
+            spans.append((here, here + len(line.rstrip("\r\n"))))
+    return spans
+
+
 def prepare_markdown(
     text: str,
 ) -> tuple[str, list[int], list[tuple[int, int]], list[tuple[int, int]]]:
