@@ -77,6 +77,12 @@ class AnalysisResult(BaseModel):
     compliant: bool
     findings: list[Finding] = []
     summary: dict = {}
+    # Each part of the text: type, first_line, last_line, checked.
+    parts: list[dict] = []
+    # SHA-256 of the examined text, with LF line ends.
+    source_sha256: str | None = None
+    # The git commit from which the checker was installed, if known.
+    checker_commit: str | None = None
 
 
 class DictionaryRecord(BaseModel):
