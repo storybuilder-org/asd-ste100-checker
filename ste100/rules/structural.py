@@ -13,7 +13,8 @@ RULE_UNITS = "STE-UNITS-FORMAT"
 
 # Common SI / technical units glued to numbers (prefer "10 mm")
 _GLUED_UNIT = re.compile(
-    r"(?P<num>\d+(?:\.\d+)?)\s*(?P<unit>mm|cm|m|km|µm|um|nm|kg|g|mg|"
+    # A number inside a word (a commit id such as ff5a98f) is not a measure.
+    r"(?<![\w.])(?P<num>\d+(?:\.\d+)?)\s*(?P<unit>mm|cm|m|km|µm|um|nm|kg|g|mg|"
     r"l|L|ml|mL|Hz|kHz|MHz|V|mV|kV|A|mA|W|kW|Pa|kPa|MPa|bar|psi|"
     r"°C|degC|°F|C|F|N|Nm|rpm)\b",
     re.IGNORECASE,
@@ -79,7 +80,15 @@ def check_units_format(doc: Doc, context: AnalysisContext) -> list[Finding]:
     findings: list[Finding] = []
     text = context.text
 
+    # A name or a word in code is not a measure.
+    name_spans = [
+        (t.idx, t.idx + len(t.text))
+        for t in doc
+        if t.i in context.name_tokens or t.i in context.code_word_tokens
+    ]
     for match in _GLUED_UNIT.finditer(text):
+        if any(a <= match.start() < b for a, b in name_spans):
+            continue
         full = match.group(0)
         num = match.group("num")
         unit = match.group("unit")
