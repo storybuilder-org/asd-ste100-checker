@@ -24,3 +24,5 @@ class AnalysisContext:
     term_tokens: frozenset[int] = field(default_factory=frozenset)
     # Token indexes of file names, code names and URLs.
     name_tokens: frozenset[int] = field(default_factory=frozenset)
+    # Token indexes of lower-case words inside code.
+    code_word_tokens: frozenset[int] = field(default_factory=frozenset)

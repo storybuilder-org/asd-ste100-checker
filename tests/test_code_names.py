@@ -73,6 +73,18 @@ def test_path_and_its_file_name_are_one_entry(tmp_path: Path, listed: str, writt
     assert hits == []
 
 
+@pytest.mark.parametrize(
+    "written",
+    ["StoryCADLib/Models/Windowing.cs:185", "Windowing.cs:252-260"],
+)
+def test_a_line_reference_is_covered_by_the_file_entry(tmp_path: Path, written: str) -> None:
+    """issue-1638-design.md names files with a line number after a colon."""
+    text = f"Read {written} first."
+    hits = [f for f in _vocab(text, glossary_path=_glossary(tmp_path, "StoryCADLib/Models/Windowing.cs"))
+            if f.evidence.get("status") == "name_not_in_glossary"]
+    assert hits == []
+
+
 def test_a_different_file_name_is_not_covered(tmp_path: Path) -> None:
     text = "Read rules/language.md first."
     hits = [f for f in _vocab(text, glossary_path=_glossary(tmp_path, "rules/writing-standards.md"))
@@ -114,12 +126,29 @@ def test_plain_word_in_a_code_span_is_a_name() -> None:
 
 
 def test_quoted_text_in_a_code_span_is_checked_word_by_word() -> None:
-    """A code span with a space quotes text; it is not a name."""
-    text = "Add the line `Utilize the tool now.` to the file.\n"
+    """A code span with a space quotes literal text, such as a value or a
+    message from a program, that the design cannot write again. Each word is
+    checked: an approved lower-case word passes, any other word is a name that
+    a glossary must list."""
+    text = "An answer is `not fixed` or `Utilize the tool.` here.\n"
     findings = _vocab(text, markdown=True)
-    assert "Utilize" in {f.evidence.get("word") for f in findings}
-    assert not [f for f in findings if f.evidence.get("status") == "name_not_in_glossary"
-                and " " in text[f.start : f.end]]
+    names = [text[f.start : f.end] for f in findings
+             if f.evidence.get("status") == "name_not_in_glossary"]
+    assert names == ["fixed", "Utilize"]
+
+
+def test_names_in_code_are_not_a_noun_cluster() -> None:
+    """issue-8-design.md: the words of a command are not English nouns."""
+    text = "The session gives the command `ste100 glossary merge word-lists/shared.yaml` now.\n"
+    result = analyze(text, text_type="description", markdown=True)
+    assert [f for f in result.findings if f.rule_id == "STE-NOUN-CLUSTER"] == []
+
+
+def test_a_name_is_not_a_verb_form() -> None:
+    """issue-8-design.md: "A finding is `blocking` if ..." """
+    text = "A finding is `blocking` if the next step will be incorrect.\n"
+    result = analyze(text, text_type="description", markdown=True)
+    assert [f for f in result.findings if f.rule_id == "STE-VERB-FORM"] == []
 
 
 def _span_findings(text: str, **kwargs):
@@ -156,15 +185,29 @@ def test_lowercase_word_in_code_is_checked_as_a_word() -> None:
     findings = _span_findings(text)
     names = [text[f.start : f.end] for f in findings
              if f.evidence.get("status") == "name_not_in_glossary"]
-    assert names == ["File", "filePath"]
+    assert names[:2] == ["File", "filePath"]
     assert "is" not in [text[f.start : f.end] for f in findings]
 
 
-def test_unapproved_lowercase_word_in_code_is_reported_as_a_word() -> None:
+def test_unapproved_lowercase_word_in_code_is_a_name() -> None:
+    """In code, a lower-case word that the dictionary does not approve is a
+    name (a command, a keyword), and a glossary must list it."""
     text = "The comment says `// utilize {x} here`.\n"
     hits = [f for f in _span_findings(text) if text[f.start : f.end] == "utilize"]
     assert len(hits) == 1
-    assert hits[0].evidence["status"] != "name_not_in_glossary"
+    assert hits[0].evidence["status"] == "name_not_in_glossary"
+
+
+@pytest.mark.parametrize(("code", "names"), [
+    ("ste100 check --markdown", ["ste100", "--markdown"]),
+    ("ste100 glossary verify --x", ["ste100", "glossary", "verify", "--x"]),
+])
+def test_approved_lowercase_word_in_code_gets_no_finding(code: str, names: list[str]) -> None:
+    """'check' is approved (as a noun), so it passes; 'verify' is not, so it
+    is a name. The part of speech is not tested inside code."""
+    text = f"Give `{code}` now.\n"
+    found = [text[f.start : f.end] for f in _span_findings(text)]
+    assert found == names
 
 
 def test_listed_names_in_code_get_no_finding(tmp_path: Path) -> None:
@@ -185,7 +228,7 @@ def test_rtf_in_a_table_cell_is_checked_name_by_name() -> None:
                 if f.start >= start]
     names = [text[f.start : f.end] for f in findings
              if f.evidence.get("status") == "name_not_in_glossary"]
-    assert names == ["rtf1", "red0", "green0", "blue0", "cf1"]
+    assert names == ["rtf1", "colortbl", "red0", "green0", "blue0", "cf1", "par"]
     # 'a' is an approved English word.
     assert "a" not in [text[f.start : f.end] for f in findings]
 
@@ -214,9 +257,51 @@ def test_each_name_in_a_fenced_code_block_is_checked() -> None:
                 if f.start >= fence_start]
     names = [text[f.start : f.end] for f in findings
              if f.evidence.get("status") == "name_not_in_glossary"]
-    assert names == ["Foo", "Bar"]
-    # 'var' is lower case: it is checked as a word, and it is not in the dictionary.
-    assert "var" in [text[f.start : f.end] for f in findings]
+    # 'var' and 'x' are not in the dictionary, so they are names.
+    assert names == ["var", "x", "Foo", "Bar"]
+
+
+@pytest.mark.parametrize(
+    ("code", "name"),
+    [
+        ('uv tool install "git+https://github.com/storybuilder-org/asd-ste100-checker"',
+         "https://github.com/storybuilder-org/asd-ste100-checker"),
+        ("ste100 check --glossary process/word-lists/shared.yaml",
+         "process/word-lists/shared.yaml"),
+        (r"cd D:\dev\src\process", r"D:\dev\src\process"),
+    ],
+)
+def test_url_or_path_in_code_is_one_name(code: str, name: str) -> None:
+    """A URL or a path inside code is one name, not cut into its words."""
+    for text in (f"Run this.\n\n```\n{code}\n```\n", f"Run `{code}` now.\n"):
+        start = text.index(name)
+        end = start + len(name)
+        spans = [(f.start, f.end) for f in _vocab(text, markdown=True)
+                 if f.evidence.get("status") == "name_not_in_glossary"]
+        assert (start, end) in spans, text
+        # No other finding lies inside the URL or the path.
+        assert [s for s in spans if start <= s[0] < end and s != (start, end)] == [], text
+
+
+def test_placeholder_in_a_path_is_part_of_the_path() -> None:
+    """issue-8-design.md: `devdocs/issue-<n>-design-glossary.yaml`."""
+    name = "devdocs/issue-<n>-design-glossary.yaml"
+    text = f"The list is `{name}` now.\n"
+    names = [text[f.start : f.end] for f in _vocab(text, markdown=True)
+             if f.evidence.get("status") == "name_not_in_glossary"]
+    assert names == [name]
+
+
+@pytest.mark.parametrize(("code", "names"), [
+    ("node --test", ["node", "--test"]),
+    ("uv tool dir --bin", ["uv", "dir", "--bin"]),
+])
+def test_command_with_an_option_in_a_code_span_is_code(code: str, names: list[str]) -> None:
+    """A code span with an option (-x or --name) is a command, not quoted text."""
+    text = f"Give the command `{code}` now.\n"
+    found = [text[f.start : f.end] for f in _vocab(text, markdown=True)
+             if f.evidence.get("status") == "name_not_in_glossary"]
+    assert found == names
 
 
 def test_listed_names_in_a_fenced_code_block_get_no_finding(tmp_path: Path) -> None:

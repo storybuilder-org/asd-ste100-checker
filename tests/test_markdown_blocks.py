@@ -50,6 +50,22 @@ def test_paragraph_after_a_table_starts_a_new_sentence() -> None:
     assert _sentence_of("folder", 0) != _sentence_of("folder", 1)
 
 
+def test_each_list_item_starts_a_sentence() -> None:
+    """issue-8-design.md: two list items with a code span at the end of the
+    first ran together into one sentence."""
+    from ste100.core.markdown import prepare_markdown
+
+    text = (
+        "- The facts agree with `process` at commit `02d4b8d`.\n"
+        "- The facts also agree with the fork.\n"
+        "1. Open the file.\n"
+        "2. Close the file.\n"
+    )
+    _, starts, _, _ = prepare_markdown(text)
+    for line_start in (text.index("- The facts also"), text.index("2. Close")):
+        assert line_start in starts
+
+
 def test_delimiter_row_gives_no_finding() -> None:
     row_start = TEXT.index("|---")
     row_end = TEXT.index("\n", row_start)

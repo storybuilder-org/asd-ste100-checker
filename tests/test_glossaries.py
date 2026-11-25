@@ -80,6 +80,18 @@ def test_plural_of_a_glossary_noun_is_accepted(tmp_path: Path) -> None:
     assert not _words(result) & {"defects", "repos", "summaries"}
 
 
+def test_glossary_noun_wins_when_the_tagger_is_not_sure(tmp_path: Path) -> None:
+    """spaCy can tag a noun as an adjective ("one more round"). The tag then
+    allows adjective, adverb or noun; an approved sense among those wins."""
+    glossary = _write(tmp_path / "g.yaml", "round")
+    result = analyze(
+        "One more round occurs only if a maintainer tells the session to do one.",
+        text_type="description",
+        glossary_path=str(glossary),
+    )
+    assert "round" not in _words(result)
+
+
 def test_cli_takes_more_than_one_glossary(shared: Path, issue: Path) -> None:
     result = CliRunner().invoke(
         main,

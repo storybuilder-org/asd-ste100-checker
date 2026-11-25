@@ -408,6 +408,8 @@ def check_verb_form(doc: Doc, context: AnalysisContext) -> list[Finding]:
         if is_non_prose(sent):
             continue
         for verb, cue, high in _verb_form_hits(sent):
+            if verb.i in context.name_tokens or verb.i in context.code_word_tokens:
+                continue  # a name or a word in code is not a verb of the text
             fragment = is_fragment(sent)
             sev = _severity(high, fragment)
             conf = confidence_for(high=high, fragment=fragment)
@@ -443,8 +445,14 @@ def check_verb_form(doc: Doc, context: AnalysisContext) -> list[Finding]:
     return findings
 
 
-def _noun_clusters(sent: Span) -> list[tuple[list[Token], bool]]:
-    """Find runs of consecutive NOUN/PROPN tokens; flag length >= 4."""
+def _noun_clusters(
+    sent: Span, names: frozenset[int] = frozenset()
+) -> list[tuple[list[Token], bool]]:
+    """Find runs of consecutive NOUN/PROPN tokens; flag length >= 4.
+
+    A name or a word in code (``names``) is not an English noun: it ends a run
+    and is not counted.
+    """
     clusters: list[tuple[list[Token], bool]] = []
     run: list[Token] = []
 
@@ -455,7 +463,7 @@ def _noun_clusters(sent: Span) -> list[tuple[list[Token], bool]]:
         run = []
 
     for token in sent:
-        if token.is_space or token.is_punct:
+        if token.is_space or token.is_punct or token.i in names:
             _flush()
             continue
         if token.pos_ in {"NOUN", "PROPN"}:
@@ -481,7 +489,9 @@ def check_noun_cluster(doc: Doc, context: AnalysisContext) -> list[Finding]:
     for sent in doc.sents:
         if is_heading_or_label(sent):
             continue
-        for cluster, high in _noun_clusters(sent):
+        for cluster, high in _noun_clusters(
+            sent, context.name_tokens | context.code_word_tokens
+        ):
             fragment = is_fragment(sent) and len(cluster) < 5
             # Bare noun-phrase lines (titles) with 4+ nouns are still real hits.
             if len(content_tokens(sent)) == len(cluster):

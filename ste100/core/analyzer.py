@@ -213,9 +213,12 @@ def analyze(
     nlp = get_nlp()
     starts: list[int] = []
     code_spans: list[tuple[int, int]] = []
+    code_words: list[tuple[int, int]] = []
     if markdown:
-        text, starts, code_spans = prepare_markdown(text)
+        text, starts, code_spans, code_words = prepare_markdown(text)
     doc, name_tokens = _parse(nlp, text, starts, _name_spans(text, code_spans))
+    code_word_starts = {start for start, _ in code_words}
+    code_word_tokens = frozenset(t.i for t in doc if t.idx in code_word_starts)
 
     engine = resolve_engine(dictionary, glossary_path)
 
@@ -226,6 +229,7 @@ def analyze(
         dictionary=engine,
         term_tokens=frozenset(engine.multiword_term_tokens([t.text for t in doc])),
         name_tokens=name_tokens,
+        code_word_tokens=code_word_tokens,
     )
 
     findings: list[Finding] = []

@@ -173,6 +173,9 @@ def _normalize_key(word: str) -> str:
     return word.strip().lower()
 
 
+_LINE_REFERENCE = re.compile(r":\d+(?:-\d+)?$")
+
+
 def _last_part(path: str) -> str:
     """The part of a path after its last slash."""
     return path.rstrip("/").rsplit("/", 1)[-1]
@@ -427,14 +430,22 @@ class DictionaryEngine:
         wanted = (pos,) if isinstance(pos, str) else tuple(pos)
         if not wanted:
             return self.lookup(word), True
-        for candidate in wanted:
-            matches = [r for r in records if (r.part_of_speech or "").lower() == candidate]
+        by_pos = [
+            [r for r in records if (r.part_of_speech or "").lower() == candidate]
+            for candidate in wanted
+        ]
+        # An approved record wins over an unapproved one among all the parts
+        # of speech that the tag allows: a glossary entry overrides the
+        # dictionary's unapproved sense ("request" as a technical noun), and a
+        # tag that allows more than one part of speech ("round" tagged as an
+        # adjective also allows a noun) takes the approved one.
+        for matches in by_pos:
+            approved = [r for r in matches if r.status in _APPROVED_STATUSES]
+            if approved:
+                return approved[0], True
+        for matches in by_pos:
             if matches:
-                # A glossary or seed entry of the same part of speech overrides
-                # the dictionary's unapproved sense ("request" as a technical
-                # noun), so an approved match wins.
-                approved = [r for r in matches if r.status in _APPROVED_STATUSES]
-                return (approved or matches)[0], True
+                return matches[0], True
         return None, True
 
     def has_approved_sense(self, word: str) -> bool:
@@ -559,7 +570,8 @@ class DictionaryEngine:
         part are one entry: "rules/writing-standards.md" in a glossary covers
         "writing-standards.md", and the reverse.
         """
-        key = _normalize_key(name)
+        # A line reference after a file name (Windowing.cs:185, :252-260).
+        key = _LINE_REFERENCE.sub("", _normalize_key(name))
         if key in self.glossary_words:
             return True
         last = _last_part(key)
