@@ -126,6 +126,9 @@ class GlossaryEntry(BaseModel):
     approved_meaning: str | None = None
     inflections: list[str] = []
     preferred_term: str | None = None
+    # A general word for the shared word list (`ste100 glossary merge`).
+    # It has no effect on a check.
+    shared: bool = False
 
 
 class Glossary(BaseModel):
