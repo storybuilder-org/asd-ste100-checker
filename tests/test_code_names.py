@@ -144,6 +144,14 @@ def test_names_in_code_are_not_a_noun_cluster() -> None:
     assert [f for f in result.findings if f.rule_id == "STE-NOUN-CLUSTER"] == []
 
 
+@pytest.mark.parametrize("name", ["ff5a98f", "98f8a1c"])
+def test_a_name_is_not_a_unit(name: str) -> None:
+    """issue-8-design.md: the commit id `ff5a98f` was read as '98 f'."""
+    text = f"The check used commit `{name}` of the fork.\n"
+    result = analyze(text, text_type="description", markdown=True)
+    assert [f for f in result.findings if f.rule_id == "STE-UNITS-FORMAT"] == []
+
+
 def test_a_name_is_not_a_verb_form() -> None:
     """issue-8-design.md: "A finding is `blocking` if ..." """
     text = "A finding is `blocking` if the next step will be incorrect.\n"
@@ -281,6 +289,18 @@ def test_url_or_path_in_code_is_one_name(code: str, name: str) -> None:
         assert (start, end) in spans, text
         # No other finding lies inside the URL or the path.
         assert [s for s in spans if start <= s[0] < end and s != (start, end)] == [], text
+
+
+@pytest.mark.parametrize("name", ["asd-ste100-checker", "en_core_web_sm-3.8.0"])
+def test_hyphenated_name_in_code_is_one_name(name: str) -> None:
+    """issue-8-design.md: `uv tool upgrade asd-ste100-checker`."""
+    text = f"Give `uv tool upgrade {name}` now.\n"
+    start = text.index(name)
+    spans = [(f.start, f.end) for f in _vocab(text, markdown=True)
+             if f.evidence.get("status") == "name_not_in_glossary"]
+    assert (start, start + len(name)) in spans
+    assert [s for s in spans if start <= s[0] < start + len(name)
+            and s != (start, start + len(name))] == []
 
 
 def test_placeholder_in_a_path_is_part_of_the_path() -> None:
