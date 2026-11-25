@@ -283,6 +283,18 @@ def test_url_or_path_in_code_is_one_name(code: str, name: str) -> None:
         assert [s for s in spans if start <= s[0] < end and s != (start, end)] == [], text
 
 
+@pytest.mark.parametrize("name", ["asd-ste100-checker", "en_core_web_sm-3.8.0"])
+def test_hyphenated_name_in_code_is_one_name(name: str) -> None:
+    """issue-8-design.md: `uv tool upgrade asd-ste100-checker`."""
+    text = f"Give `uv tool upgrade {name}` now.\n"
+    start = text.index(name)
+    spans = [(f.start, f.end) for f in _vocab(text, markdown=True)
+             if f.evidence.get("status") == "name_not_in_glossary"]
+    assert (start, start + len(name)) in spans
+    assert [s for s in spans if start <= s[0] < start + len(name)
+            and s != (start, start + len(name))] == []
+
+
 def test_placeholder_in_a_path_is_part_of_the_path() -> None:
     """issue-8-design.md: `devdocs/issue-<n>-design-glossary.yaml`."""
     name = "devdocs/issue-<n>-design-glossary.yaml"
