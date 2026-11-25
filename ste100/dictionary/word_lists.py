@@ -65,11 +65,13 @@ def merge(shared_path: Path, issue_path: Path) -> MergeResult:
     issue = _load(issue_path)
     result = MergeResult()
 
-    existing: dict[str, dict[str, Any]] = {}
+    # A word is one entry in each list: the noun "commit" and the verb
+    # "commit" are two entries.
+    existing: dict[tuple[str, str], dict[str, Any]] = {}
     for key in _ENTRY_KEYS:
         shared[key] = [_entry(e) for e in shared.get(key) or []]
         for entry in shared[key]:
-            existing[_key(entry.get("word"))] = entry
+            existing[(key, _key(entry.get("word")))] = entry
 
     pending: list[tuple[str, dict[str, Any]]] = []
     for key in _ENTRY_KEYS:
@@ -77,7 +79,7 @@ def merge(shared_path: Path, issue_path: Path) -> MergeResult:
             entry = _entry(item)
             if not entry.pop("shared", False):
                 continue
-            word = _key(entry.get("word"))
+            word = (key, _key(entry.get("word")))
             have = existing.get(word)
             if have is None:
                 pending.append((key, entry))
