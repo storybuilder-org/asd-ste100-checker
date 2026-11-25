@@ -144,6 +144,14 @@ def test_names_in_code_are_not_a_noun_cluster() -> None:
     assert [f for f in result.findings if f.rule_id == "STE-NOUN-CLUSTER"] == []
 
 
+@pytest.mark.parametrize("name", ["ff5a98f", "98f8a1c"])
+def test_a_name_is_not_a_unit(name: str) -> None:
+    """issue-8-design.md: the commit id `ff5a98f` was read as '98 f'."""
+    text = f"The check used commit `{name}` of the fork.\n"
+    result = analyze(text, text_type="description", markdown=True)
+    assert [f for f in result.findings if f.rule_id == "STE-UNITS-FORMAT"] == []
+
+
 def test_a_name_is_not_a_verb_form() -> None:
     """issue-8-design.md: "A finding is `blocking` if ..." """
     text = "A finding is `blocking` if the next step will be incorrect.\n"
