@@ -28,3 +28,5 @@ class AnalysisContext:
     code_word_tokens: frozenset[int] = field(default_factory=frozenset)
     # (start, end) of each Markdown heading line.
     heading_spans: tuple[tuple[int, int], ...] = ()
+    # True if the text was read as Markdown.
+    markdown: bool = False

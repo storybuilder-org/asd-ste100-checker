@@ -347,6 +347,7 @@ def _analyze_text(
         name_tokens=name_tokens,
         code_word_tokens=code_word_tokens,
         heading_spans=tuple(headings),
+        markdown=markdown,
     )
 
     findings: list[Finding] = []
