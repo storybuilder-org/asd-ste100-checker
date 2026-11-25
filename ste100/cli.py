@@ -17,6 +17,8 @@ from ste100.core.schema import TextType
 from ste100.core.serialize import format_output
 from ste100.core.spacy_ready import check_spacy_model, download_spacy_model
 from ste100.dictionary.engine import get_default_engine
+from ste100.dictionary.word_lists import merge as merge_word_lists
+from ste100.dictionary.word_lists import verify as verify_word_list
 from ste100.lsp.server import run_server as run_lsp_server
 from ste100.mcp.server import run_server as run_mcp_server
 
@@ -127,6 +129,37 @@ def lookup_cmd(word: str) -> None:
     payload = engine.lookup_payload(word)
     click.echo(json.dumps(payload, indent=2, ensure_ascii=False))
     raise SystemExit(0)
+
+
+@main.group("glossary")
+def glossary_group() -> None:
+    """Tools for word lists (glossaries)."""
+
+
+@glossary_group.command("merge")
+@click.argument("shared", type=click.Path(path_type=Path, dir_okay=False))
+@click.argument("issue", type=click.Path(path_type=Path, exists=True, dir_okay=False))
+def glossary_merge_cmd(shared: Path, issue: Path) -> None:
+    """Write the shared: true entries and preferred_terms of ISSUE into SHARED."""
+    result = merge_word_lists(shared, issue)
+    if result.conflicts:
+        click.echo("error: no file changed; these words conflict:", err=True)
+        for line in result.conflicts:
+            click.echo(f"  {line}")
+        raise SystemExit(1)
+    for word in result.added:
+        click.echo(f"added: {word}")
+    raise SystemExit(0)
+
+
+@glossary_group.command("verify")
+@click.argument("path", type=click.Path(path_type=Path, exists=True, dir_okay=False))
+def glossary_verify_cmd(path: Path) -> None:
+    """Find each entry of PATH without a meaning, and each two with the same meaning."""
+    errors = verify_word_list(path)
+    for line in errors:
+        click.echo(line)
+    raise SystemExit(1 if errors else 0)
 
 
 @main.command("explain")

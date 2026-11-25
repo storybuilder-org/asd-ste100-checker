@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+import functools
+import hashlib
+import importlib.metadata
+import json
 import os
 import re
 from collections.abc import Sequence
@@ -11,7 +15,7 @@ import spacy
 from spacy.language import Language
 from spacy.tokens import Doc
 
-from ste100.core.markdown import prepare_markdown
+from ste100.core.markdown import heading_spans, prepare_markdown
 from ste100.core.schema import AnalysisResult, Finding, Severity, TextType
 from ste100.dictionary.engine import DictionaryEngine, is_code_name, resolve_engine
 from ste100.rules.context import AnalysisContext
@@ -193,6 +197,56 @@ def _parse(
     return doc, name_tokens
 
 
+_MARK = re.compile(r"^<!-- ste100: (plain-english|description|procedure) -->\s*$")
+_PLAIN = "plain-english"
+
+
+@functools.lru_cache(maxsize=1)
+def checker_commit() -> str | None:
+    """The git commit from which this checker was installed, or None.
+
+    ``uv tool install`` from git writes the commit into ``direct_url.json``
+    of the installed package. An editable or local install has none.
+    """
+    try:
+        raw = importlib.metadata.distribution("asd-ste100-checker").read_text(
+            "direct_url.json"
+        )
+    except importlib.metadata.PackageNotFoundError:
+        return None
+    if not raw:
+        return None
+    try:
+        data = json.loads(raw)
+    except ValueError:
+        return None
+    commit = (data.get("vcs_info") or {}).get("commit_id")
+    return commit if isinstance(commit, str) else None
+
+
+def _find_parts(lines: list[str], first_type: str) -> list[dict]:
+    """Parts of a text: from one mark line to the next. The text in front of
+    the first mark has ``first_type``. Line numbers start at 1."""
+    parts: list[dict] = []
+    kind, first = first_type, 1
+    for number, line in enumerate(lines, 1):
+        match = _MARK.match(line)
+        if match:
+            if number > first:
+                parts.append({"type": kind, "first_line": first, "last_line": number - 1})
+            kind, first = match.group(1), number
+    if lines and first <= len(lines):
+        parts.append({"type": kind, "first_line": first, "last_line": len(lines)})
+    for part in parts:
+        part["checked"] = part["type"] != _PLAIN
+    return parts
+
+
+def _blank_line(line: str) -> str:
+    body = line.rstrip("\r\n")
+    return " " * len(body) + line[len(body) :]
+
+
 def analyze(
     text: str,
     text_type: TextType | str = TextType.AUTO,
@@ -208,19 +262,81 @@ def analyze(
     ``markdown``, each name in code is checked against the glossaries, and
     each heading and table cell is a sentence (see :mod:`ste100.core.markdown`).
     Finding offsets refer to ``text``.
+
+    With ``markdown``, a mark line ``<!-- ste100: <type> -->`` starts a part.
+    Each part is checked with the text type of its mark; a ``plain-english``
+    part gets no rules. The text in front of the first mark has ``text_type``.
+    The result lists every part, the SHA-256 of the text (with LF line ends)
+    and the git commit of the checker.
     """
     requested = _parse_text_type(text_type)
+    engine = resolve_engine(dictionary, glossary_path)
+    sha = hashlib.sha256(text.replace("\r\n", "\n").encode("utf-8")).hexdigest()
+    lines = text.splitlines(keepends=True)
+    parts = _find_parts(lines, requested.value) if markdown else []
+    has_marks = len(parts) > 1 or any(_MARK.match(line) for line in lines)
+
+    if not has_marks:
+        result = _analyze_text(text, requested, engine, markdown)
+        parts = [{"type": result.text_type.value, "first_line": 1,
+                  "last_line": max(len(lines), 1), "checked": True}]
+        return result.model_copy(update={
+            "parts": parts, "source_sha256": sha, "checker_commit": checker_commit()})
+
+    # One run for each text type, with the other parts and the mark lines
+    # replaced by spaces, so the offsets of the findings stay correct.
+    line_type = [""] * len(lines)
+    for part in parts:
+        for number in range(part["first_line"], part["last_line"] + 1):
+            line_type[number - 1] = part["type"]
+    findings: list[Finding] = []
+    resolved_first: TextType | None = None
+    for kind in dict.fromkeys(p["type"] for p in parts if p["checked"]):
+        masked = "".join(
+            line if line_type[i] == kind and not _MARK.match(line) else _blank_line(line)
+            for i, line in enumerate(lines)
+        )
+        result = _analyze_text(masked, _parse_text_type(kind), engine, markdown)
+        if kind == TextType.AUTO.value:
+            resolved_first = result.text_type
+        findings.extend(result.findings)
+    if resolved_first is not None:
+        for part in parts:
+            if part["type"] == TextType.AUTO.value:
+                part["type"] = resolved_first.value
+
+    findings.sort(key=lambda f: (f.start, f.end, f.rule_id))
+    summary = _summary(findings)
+    first_checked = next((p["type"] for p in parts if p["checked"]), requested.value)
+    return AnalysisResult(
+        text_type=_parse_text_type(first_checked),
+        compliant=summary["error"] == 0,
+        findings=findings,
+        summary=summary,
+        parts=parts,
+        source_sha256=sha,
+        checker_commit=checker_commit(),
+    )
+
+
+def _analyze_text(
+    text: str,
+    requested: TextType,
+    engine: DictionaryEngine,
+    markdown: bool,
+) -> AnalysisResult:
+    """Run every rule on ``text`` with one text type."""
     nlp = get_nlp()
     starts: list[int] = []
     code_spans: list[tuple[int, int]] = []
     code_words: list[tuple[int, int]] = []
+    headings: list[tuple[int, int]] = []
     if markdown:
+        headings = heading_spans(text)
         text, starts, code_spans, code_words = prepare_markdown(text)
     doc, name_tokens = _parse(nlp, text, starts, _name_spans(text, code_spans))
     code_word_starts = {start for start, _ in code_words}
     code_word_tokens = frozenset(t.i for t in doc if t.idx in code_word_starts)
-
-    engine = resolve_engine(dictionary, glossary_path)
 
     resolved = _resolve_text_type(requested, doc, text)
     context = AnalysisContext(
@@ -230,6 +346,8 @@ def analyze(
         term_tokens=frozenset(engine.multiword_term_tokens([t.text for t in doc])),
         name_tokens=name_tokens,
         code_word_tokens=code_word_tokens,
+        heading_spans=tuple(headings),
+        markdown=markdown,
     )
 
     findings: list[Finding] = []

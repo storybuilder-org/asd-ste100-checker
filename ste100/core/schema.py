@@ -77,6 +77,12 @@ class AnalysisResult(BaseModel):
     compliant: bool
     findings: list[Finding] = []
     summary: dict = {}
+    # Each part of the text: type, first_line, last_line, checked.
+    parts: list[dict] = []
+    # SHA-256 of the examined text, with LF line ends.
+    source_sha256: str | None = None
+    # The git commit from which the checker was installed, if known.
+    checker_commit: str | None = None
 
 
 class DictionaryRecord(BaseModel):
@@ -120,6 +126,9 @@ class GlossaryEntry(BaseModel):
     approved_meaning: str | None = None
     inflections: list[str] = []
     preferred_term: str | None = None
+    # A general word for the shared word list (`ste100 glossary merge`).
+    # It has no effect on a check.
+    shared: bool = False
 
 
 class Glossary(BaseModel):

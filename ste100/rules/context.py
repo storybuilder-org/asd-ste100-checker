@@ -26,3 +26,7 @@ class AnalysisContext:
     name_tokens: frozenset[int] = field(default_factory=frozenset)
     # Token indexes of lower-case words inside code.
     code_word_tokens: frozenset[int] = field(default_factory=frozenset)
+    # (start, end) of each Markdown heading line.
+    heading_spans: tuple[tuple[int, int], ...] = ()
+    # True if the text was read as Markdown.
+    markdown: bool = False
