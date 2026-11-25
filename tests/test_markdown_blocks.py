@@ -6,6 +6,8 @@ of a table is not text.
 
 from __future__ import annotations
 
+import pytest
+
 from ste100.core.analyzer import analyze
 
 TEXT = (
@@ -56,6 +58,23 @@ def test_a_heading_is_not_the_topic_sentence() -> None:
     text = "## 1. Data about this file\n\nThe table gives the data of this file.\n"
     result = analyze(text, text_type="description", markdown=True)
     assert [f for f in result.findings if f.rule_id == "STE-TOPIC-SENTENCE"] == []
+
+
+@pytest.mark.parametrize("opening", [
+    "**Issue:** [process #8](https://github.com/storybuilder-org/process/issues/8)\n"
+    "**Date:** 2026-11-23. Revision 4.\n\n",
+    "| Item | Data |\n|---|---|\n| This file | The design. |\n\n",
+])
+def test_a_label_line_or_table_is_not_the_topic_sentence(opening: str) -> None:
+    text = opening + "The tool examines the text of the design.\n"
+    result = analyze(text, text_type="description", markdown=True)
+    assert [f for f in result.findings if f.rule_id == "STE-TOPIC-SENTENCE"] == []
+
+
+def test_a_weak_first_sentence_is_still_reported_in_markdown() -> None:
+    text = "## The tool\n\nIt examines the text of the design.\n"
+    result = analyze(text, text_type="description", markdown=True)
+    assert [f.rule_id for f in result.findings].count("STE-TOPIC-SENTENCE") == 1
 
 
 def test_each_list_item_starts_a_sentence() -> None:
