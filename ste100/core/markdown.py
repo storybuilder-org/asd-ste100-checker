@@ -80,6 +80,9 @@ _SEG = r"(?:<\w+>|[\w.~-])+"
 _CODE_PATH = re.compile(rf"^(?:[A-Za-z]:(?:\\{_SEG})+\\?|{_SEG}(?:/{_SEG})+/?)$")
 # A command option: -x or --name.
 _CODE_OPTION = re.compile(r"^--?[A-Za-z][\w-]*$")
+# A name joined with hyphens, such as a package name: asd-ste100-checker,
+# en_core_web_sm-3.8.0.
+_CODE_HYPHENATED = re.compile(r"^[A-Za-z][\w.]*(?:-[\w.]*\w)+$")
 _HAS_OPTION = re.compile(r"(?:^|\s)--?[A-Za-z]")
 
 
@@ -92,7 +95,7 @@ def _words_in_code(code: str) -> list[tuple[int, int, bool]]:
     taken: list[tuple[int, int]] = [m.span() for m in _CODE_URL.finditer(code)]
     for m in _CODE_CHUNK.finditer(code):
         chunk = m.group(0)
-        if _CODE_PATH.match(chunk) or _CODE_OPTION.match(chunk):
+        if _CODE_PATH.match(chunk) or _CODE_OPTION.match(chunk) or _CODE_HYPHENATED.match(chunk):
             if all(m.end() <= a or m.start() >= b for a, b in taken):
                 taken.append(m.span())
     out = [(a, b, True) for a, b in taken]
