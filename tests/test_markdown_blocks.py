@@ -50,6 +50,14 @@ def test_paragraph_after_a_table_starts_a_new_sentence() -> None:
     assert _sentence_of("folder", 0) != _sentence_of("folder", 1)
 
 
+def test_a_heading_is_not_the_topic_sentence() -> None:
+    """issue-8-design.md: "## 1. Data about this file" was judged as a weak
+    opening sentence."""
+    text = "## 1. Data about this file\n\nThe table gives the data of this file.\n"
+    result = analyze(text, text_type="description", markdown=True)
+    assert [f for f in result.findings if f.rule_id == "STE-TOPIC-SENTENCE"] == []
+
+
 def test_each_list_item_starts_a_sentence() -> None:
     """issue-8-design.md: two list items with a code span at the end of the
     first ran together into one sentence."""
