@@ -68,7 +68,9 @@ _IDENTIFIER = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
 # must list it. Any other word in code is a name.
 _LOWERCASE_WORD = re.compile(r"^[a-z]+$")
 # A file path with no space: D:\dev\src\CLAUDE.md, ~/.claude/CLAUDE.md.
-_PATH_CONTENT = re.compile(r"^(?:[A-Za-z]:)?[\w.~-]*(?:[\\/][\w.~-]+)+[\\/]?$")
+_PATH_CONTENT = re.compile(
+    r"^(?:[A-Za-z]:|%\w+%|\$\w+|\$\{\w+\})?[\w.~-]*(?:[\\/][\w.~-]+)+[\\/]?$"
+)
 
 _CODE_URL = re.compile(r"https?://[^\s\"'`<>()\[\]{}]*[^\s\"'`<>()\[\]{}.,;:!?]")
 # A placeholder such as <n> is part of the word around it.
@@ -77,7 +79,17 @@ _CODE_CHUNK = re.compile(r"(?:<\w+>|[^\s\"'`<>()\[\]{}=;,|&*+!?])+")
 # forward slashes (process/word-lists/shared.yaml, ~/.claude). An RTF code
 # such as \rtf1 or a\par is not a path.
 _SEG = r"(?:<\w+>|[\w.~-])+"
-_CODE_PATH = re.compile(rf"^(?:[A-Za-z]:(?:\\{_SEG})+\\?|{_SEG}(?:/{_SEG})+/?)$")
+# A path can also start with an environment variable: %APPDATA%\uv, $HOME/bin.
+_ENV = r"(?:%\w+%|\$\w+|\$\{\w+\})"
+_CODE_PATH = re.compile(
+    rf"^(?:[A-Za-z]:(?:\\{_SEG})+\\?|{_ENV}(?:[\\/]{_SEG})+[\\/]?|{_SEG}(?:/{_SEG})+/?)$"
+)
+# A file name with a known extension: meaning_pass.py, issue-8-design.md.
+_FILE_EXTENSIONS = (
+    "py|md|json|yaml|yml|txt|cs|xaml|js|mjs|cjs|ts|csproj|sln|props|targets|toml|"
+    "exe|dll|pdf|png|jpg|svg|html|css|xml|ps1|sh|bat|cmd|cfg|ini|log|zip|whl|stbx|rtf"
+)
+_CODE_FILE = re.compile(rf"^[\w-]+(?:\.[\w-]+)*\.(?:{_FILE_EXTENSIONS})$")
 # A command option: -x or --name.
 _CODE_OPTION = re.compile(r"^--?[A-Za-z][\w-]*$")
 # A name joined with hyphens, such as a package name: asd-ste100-checker,
@@ -95,7 +107,12 @@ def _words_in_code(code: str) -> list[tuple[int, int, bool]]:
     taken: list[tuple[int, int]] = [m.span() for m in _CODE_URL.finditer(code)]
     for m in _CODE_CHUNK.finditer(code):
         chunk = m.group(0)
-        if _CODE_PATH.match(chunk) or _CODE_OPTION.match(chunk) or _CODE_HYPHENATED.match(chunk):
+        if (
+            _CODE_PATH.match(chunk)
+            or _CODE_OPTION.match(chunk)
+            or _CODE_HYPHENATED.match(chunk)
+            or _CODE_FILE.match(chunk)
+        ):
             if all(m.end() <= a or m.start() >= b for a, b in taken):
                 taken.append(m.span())
     out = [(a, b, True) for a, b in taken]
