@@ -125,6 +125,17 @@ def test_path_that_starts_with_an_environment_variable_is_one_name(path: str) ->
         assert inside == [], (text, names)
 
 
+def test_file_name_in_code_is_one_name() -> None:
+    """`python meaning_pass.py` gave a finding for "py". A dotted chain of
+    code (`Document.GetRange`) is still checked name by name."""
+    text = "Run `python meaning_pass.py --min 2` and `Document.GetRange(0, 1)` now.\n"
+    names = [text[f.start : f.end] for f in _vocab(text, markdown=True)
+             if f.evidence.get("status") == "name_not_in_glossary"]
+    assert "meaning_pass.py" in names
+    assert "py" not in names
+    assert "Document" in names and "GetRange" in names
+
+
 def test_two_code_spans_joined_by_a_slash_are_two_names() -> None:
     """issue-1675-design.md: `win:`/`skia:`."""
     text = "Use the `win:`/`skia:` prefixes.\n"
