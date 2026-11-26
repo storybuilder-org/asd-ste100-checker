@@ -109,6 +109,22 @@ def test_path_in_a_code_span_is_one_name(path: str) -> None:
     assert names == [path]
 
 
+@pytest.mark.parametrize("path", [
+    r"%APPDATA%\uv\tools\asd-ste100-checker\Scripts\python.exe",
+    "$HOME/.local/bin",
+])
+def test_path_that_starts_with_an_environment_variable_is_one_name(path: str) -> None:
+    """Collaborator issue 325 design: `%APPDATA%\\uv\\tools\\...` was cut into words."""
+    for text in (f"Run `{path}` now.\n", f"Run `{path} meaning_pass.py` now.\n"):
+        names = [text[f.start : f.end] for f in _vocab(text, markdown=True)
+                 if f.evidence.get("status") == "name_not_in_glossary"]
+        assert path in names, (text, names)
+        start = text.index(path)
+        inside = [n for n in names if n != path and text.find(n) >= start
+                  and text.find(n) < start + len(path)]
+        assert inside == [], (text, names)
+
+
 def test_two_code_spans_joined_by_a_slash_are_two_names() -> None:
     """issue-1675-design.md: `win:`/`skia:`."""
     text = "Use the `win:`/`skia:` prefixes.\n"
